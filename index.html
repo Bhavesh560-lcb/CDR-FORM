@@ -418,7 +418,7 @@
 </head>
 <body>
 
-<div class="login-overlay" id="loginOverlay">
+<div class="login-overlay" id="loginOverlay" style="display:none;">
   <div class="login-box">
     <div class="login-title">CMS LCB RR <span style="font-size:13px;font-weight:400;color:var(--ink-soft);">(BVM)</span></div>
     <div class="login-sub">આગળ વધવા લોગિન કરો</div>
@@ -861,17 +861,24 @@ function checkLogin(){
   const saved = localStorage.getItem('gunho-logged-in');
   if(saved){
     currentUser = saved;
-    showApp();
+    revealApp();
+  } else {
+    document.getElementById('loginOverlay').style.display = 'flex';
   }
 }
 
-function showApp(){
+function revealApp(){
   document.getElementById('loginOverlay').style.display = 'none';
   document.getElementById('appMain').style.display = 'block';
   document.getElementById('currentUserLabel').textContent = 'યુઝર: ' + currentUser;
   const isAdmin = (currentUser === LOGIN_USER);
   document.getElementById('userMgmtCard').style.display = isAdmin ? 'block' : 'none';
   document.getElementById('filterToggle').style.display = isAdmin ? 'flex' : 'none';
+}
+
+function showApp(){
+  revealApp();
+  const isAdmin = (currentUser === LOGIN_USER);
   if(isAdmin) renderUserList();
   renderLog();
 }
@@ -1397,10 +1404,13 @@ document.getElementById('notifyEmail').addEventListener('change', saveSettings);
 document.getElementById('testBtn').addEventListener('click', testConnection);
 
 (async function init(){
+  checkLogin();
   addMobileRow();
   await loadSettings();
   await loadEntries();
-  checkLogin();
+  if(currentUser === LOGIN_USER){
+    renderUserList();
+  }
 })();
 
 // ---- PWA: સર્વિસ વર્કર રજિસ્ટર + "ઍપ ઇન્સ્ટોલ કરો" બટન ----
