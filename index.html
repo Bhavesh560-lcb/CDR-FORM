@@ -474,7 +474,7 @@
       <label>Google Sheet ની લિંક (URL) <span class="req">*</span></label>
       <input type="text" id="webhookUrl" placeholder="https://script.google.com/macros/s/xxxxx/exec">
     </div>
-    <div class="field-row">
+    <div class="field-row" style="display:none;">
       <label>તમારો ઈમેલ <span class="note">(નવી એન્ટ્રીની જાણ કરવા માટે)</span></label>
       <input type="email" id="notifyEmail" placeholder="you@example.com">
     </div>
@@ -858,7 +858,7 @@ document.getElementById('addUserBtn').addEventListener('click', async ()=>{
 });
 
 function checkLogin(){
-  const saved = sessionStorage.getItem('gunho-logged-in');
+  const saved = localStorage.getItem('gunho-logged-in');
   if(saved){
     currentUser = saved;
     showApp();
@@ -899,7 +899,7 @@ async function attemptLogin(){
 
   if(ok){
     currentUser = u;
-    sessionStorage.setItem('gunho-logged-in', u);
+    localStorage.setItem('gunho-logged-in', u);
     err.textContent = '';
     showApp();
   } else {
@@ -909,7 +909,7 @@ async function attemptLogin(){
 }
 
 function logout(){
-  sessionStorage.removeItem('gunho-logged-in');
+  localStorage.removeItem('gunho-logged-in');
   currentUser = null;
   document.getElementById('loginOverlay').style.display = 'flex';
   document.getElementById('appMain').style.display = 'none';
@@ -1265,7 +1265,7 @@ async function submitForm(){
   const dateFrom = document.getElementById('fDateFrom').value;
   const dateTo = document.getElementById('fDateTo').value;
   const webhookUrl = document.getElementById('webhookUrl').value.trim();
-  const notifyEmail = document.getElementById('notifyEmail').value.trim();
+  const notifyEmail = ''; // ઈમેલ નોટિફિકેશન બંધ કરેલ છે
   const statusEl = document.getElementById('statusMsg');
   const btn = document.getElementById('submitBtn');
 
@@ -1345,8 +1345,6 @@ async function submitForm(){
     toast(`${rows.length} નવી એન્ટ્રી ઉમેરાઈ (ફક્ત આ ડિવાઇસમાં)`);
   }
 
-  document.getElementById('fName').value = '';
-  document.getElementById('fCrime').value = '';
   document.getElementById('fDateFrom').value = '';
   document.getElementById('fDateTo').value = '';
   document.getElementById('mobRows').innerHTML = '';
