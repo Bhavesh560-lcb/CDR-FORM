@@ -581,6 +581,7 @@
           <button type="button" class="filter-btn active" id="showMineBtn">મારી એન્ટ્રીઓ</button>
           <button type="button" class="filter-btn" id="showAllBtn">બધી એન્ટ્રીઓ</button>
         </div>
+        <button type="button" class="addRowBtn" id="refreshEntriesBtn" style="margin-top:0;">🔄 તાજું કરો</button>
         <button type="button" class="addRowBtn" id="downloadXlsxBtn" style="margin-top:0;">⬇ Excel ડાઉનલોડ</button>
         <span class="log-count" id="logCount">0 એન્ટ્રી</span>
       </div>
@@ -1018,19 +1019,19 @@ document.getElementById('registerBtn').addEventListener('click', async ()=>{
 });
 
 let logFilter = 'mine';
-document.getElementById('showMineBtn').addEventListener('click', ()=>{
+document.getElementById('showMineBtn').addEventListener('click', async ()=>{
   logFilter = 'mine';
   document.getElementById('showMineBtn').classList.add('active');
   document.getElementById('showAllBtn').classList.remove('active');
   document.getElementById('logTitle').textContent = 'મારી એન્ટ્રીઓ';
-  renderLog();
+  await loadEntries();
 });
-document.getElementById('showAllBtn').addEventListener('click', ()=>{
+document.getElementById('showAllBtn').addEventListener('click', async ()=>{
   logFilter = 'all';
   document.getElementById('showAllBtn').classList.add('active');
   document.getElementById('showMineBtn').classList.remove('active');
   document.getElementById('logTitle').textContent = 'બધી એન્ટ્રીઓ';
-  renderLog();
+  await loadEntries();
 });
 
 const OPERATORS = ['Jio','Airtel','Vi (Vodafone Idea)','BSNL','IMEI','અન્ય'];
@@ -1114,15 +1115,34 @@ function makeId(){
   return Date.now().toString(36) + Math.random().toString(36).slice(2,8);
 }
 
-async function loadEntries(){
+async function fetchEntriesFromServer(){
+  const url = currentWebhookUrl();
+  if(!url) return null;
   try{
-    const res = await storage.get('entries-log');
-    entries = res && res.value ? JSON.parse(res.value) : [];
-  }catch(e){ entries = []; }
-  entries.forEach(e => {
-    if(!e.id) e.id = makeId();
-    if(e.cdr === undefined) e.cdr = false;
-  });
+    const sep = url.includes('?') ? '&' : '?';
+    const res = await fetch(url + sep + 'action=listEntries');
+    const text = await res.text();
+    const parsed = JSON.parse(text);
+    if(parsed && parsed.status === 'ok' && Array.isArray(parsed.entries)) return parsed.entries;
+    return null;
+  }catch(e){ return null; }
+}
+
+async function loadEntries(){
+  const serverEntries = await fetchEntriesFromServer();
+  if(serverEntries){
+    entries = serverEntries;
+    try{ await storage.set('entries-log', JSON.stringify(entries.slice(0,300))); }catch(e){}
+  } else {
+    try{
+      const res = await storage.get('entries-log');
+      entries = res && res.value ? JSON.parse(res.value) : [];
+    }catch(e){ entries = []; }
+    entries.forEach(e => {
+      if(!e.id) e.id = makeId();
+      if(e.cdr === undefined) e.cdr = false;
+    });
+  }
   regCounter = entries.length;
   renderLog();
   document.getElementById('regNo').textContent = 'રજી. નં. ' + String(regCounter).padStart(4,'0');
@@ -1139,6 +1159,15 @@ function getVisibleEntries(){
   const showAll = isAdmin && logFilter === 'all';
   return showAll ? entries : entries.filter(e => e.username === currentUser);
 }
+
+document.getElementById('refreshEntriesBtn').addEventListener('click', async ()=>{
+  const btn = document.getElementById('refreshEntriesBtn');
+  btn.disabled = true;
+  btn.textContent = '🔄 લોડ થાય છે...';
+  await loadEntries();
+  btn.textContent = '🔄 તાજું કરો';
+  btn.disabled = false;
+});
 
 document.getElementById('downloadXlsxBtn').addEventListener('click', ()=>{
   const list = getVisibleEntries();
@@ -1192,14 +1221,31 @@ function renderLog(){
   body.querySelectorAll('.cdrCheck').forEach(cb=>{
     cb.addEventListener('change', async (e)=>{
       const id = e.target.dataset.id;
+      const checked = e.target.checked;
       const entry = entries.find(x => x.id === id);
-      if(entry){
-        entry.cdr = e.target.checked;
-        await persistEntries();
-        renderLog();
-      }
+      if(entry) entry.cdr = checked;
+      e.target.disabled = true;
+      await setCdrOnServer(id, checked);
+      await persistEntries();
+      renderLog();
     });
   });
+}
+
+async function setCdrOnServer(id, cdr){
+  const url = currentWebhookUrl();
+  if(!url) return { status:'error' };
+  try{
+    const res = await fetch(url, {
+      method:'POST',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify({ action:'setCdr', id, cdr })
+    });
+    const text = await res.text();
+    return JSON.parse(text);
+  }catch(e){
+    return { status:'error', message: e.message };
+  }
 }
 
 function escapeHtml(s){
@@ -1229,7 +1275,7 @@ async function submitForm(){
   }
 
   const rows = mobRows.map(m => ({
-    name, mobile: m.mobile, operator: m.operator, accusedName: m.accusedName, crimeNumber, dateFrom, dateTo, username: currentUser
+    name, mobile: m.mobile, operator: m.operator, accusedName: m.accusedName, crimeNumber, dateFrom, dateTo, username: currentUser, id: makeId()
   }));
 
   btn.disabled = true;
@@ -1237,7 +1283,7 @@ async function submitForm(){
   statusEl.className = 'status';
 
   const stamp = new Date().toISOString();
-  rows.forEach(r => entries.unshift({...r, ts: stamp, id: makeId(), cdr: false}));
+  rows.forEach(r => entries.unshift({...r, ts: stamp, cdr: false}));
   await persistEntries();
   regCounter = entries.length;
   document.getElementById('regNo').textContent = 'રજી. નં. ' + String(regCounter).padStart(4,'0');
