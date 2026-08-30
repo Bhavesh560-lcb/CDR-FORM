@@ -1182,8 +1182,8 @@ document.getElementById('downloadXlsxBtn').addEventListener('click', ()=>{
     'કંપની': r.operator || '',
     'આરોપીનું નામ': r.accusedName || '',
     'ગુન્હા નં.': r.crimeNumber || '',
-    'તારીખ થી': r.dateFrom || '',
-    'તારીખ સુધી': r.dateTo || '',
+    'તારીખ થી': toDMY(r.dateFrom),
+    'તારીખ સુધી': toDMY(r.dateTo),
     'યુઝર': r.username || '',
     'CDR આવ્યું': r.cdr ? 'હા' : 'ના'
   }));
@@ -1204,7 +1204,7 @@ function renderLog(){
     return;
   }
   body.innerHTML = list.slice(0,60).map((r, i)=>{
-    const dateStr = [r.dateFrom, r.dateTo].filter(Boolean).join(' → ') || '—';
+    const dateStr = [toDMY(r.dateFrom), toDMY(r.dateTo)].filter(Boolean).join(' → ') || '—';
     return `<tr class="${r.cdr ? 'cdr-done' : ''}">
       <td class="idx-cell">${String(list.length - i).padStart(3,'0')}</td>
       <td>${escapeHtml(r.name)}</td>
@@ -1246,6 +1246,13 @@ async function setCdrOnServer(id, cdr){
   }catch(e){
     return { status:'error', message: e.message };
   }
+}
+
+function toDMY(dateStr){
+  if(!dateStr) return '';
+  const m = String(dateStr).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(!m) return dateStr;
+  return `${m[3]}-${m[2]}-${m[1]}`;
 }
 
 function escapeHtml(s){
