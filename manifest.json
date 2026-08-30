@@ -1,7 +1,7 @@
 {
-  "name": "ડેટા એન્ટ્રી રજિસ્ટર",
-  "short_name": "ડેટા એન્ટ્રી",
-  "description": "મોબાઇલ/IMEI ડેટા એન્ટ્રી રજિસ્ટર",
+  "name": "CMS LCB RR",
+  "short_name": "CMS LCB RR",
+  "description": "મોબાઇલ/IMEI CMS LCB RR",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
