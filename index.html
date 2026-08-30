@@ -1,0 +1,1384 @@
+<!DOCTYPE html>
+<html lang="gu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ડેટા એન્ટ્રી રજિસ્ટર</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ડેટા એન્ટ્રી">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<meta name="theme-color" content="#1e3a5f">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Gujarati:wght@500;700&family=Noto+Sans+Gujarati:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#f3ede0;
+    --paper-line:#d8cdb3;
+    --ink:#1e2a38;
+    --ink-soft:#4a5768;
+    --navy:#1e3a5f;
+    --navy-deep:#132840;
+    --brass:#a97c34;
+    --ok:#2f6b4f;
+    --err:#a3402f;
+    --card:#fbf8f0;
+  }
+  *{box-sizing:border-box;}
+  .login-overlay{
+    position:fixed;
+    inset:0;
+    background:
+      repeating-linear-gradient(180deg, var(--paper-line) 0px, var(--paper-line) 1px, transparent 1px, transparent 38px),
+      var(--paper);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    z-index:100;
+    padding:20px;
+  }
+  .login-box{
+    background:var(--card);
+    border:1px solid var(--paper-line);
+    border-radius:6px;
+    box-shadow:0 1px 3px rgba(30,42,56,0.08), 0 8px 24px -12px rgba(30,42,56,0.18);
+    padding:32px 28px;
+    width:100%;
+    max-width:340px;
+  }
+  .login-title{
+    font-family:'Noto Serif Gujarati', serif;
+    font-weight:700;
+    font-size:22px;
+    color:var(--navy-deep);
+    text-align:center;
+    border-bottom:2px double var(--navy);
+    padding-bottom:10px;
+    margin-bottom:4px;
+  }
+  .login-sub{
+    text-align:center;
+    font-size:12.5px;
+    color:var(--ink-soft);
+    margin-bottom:20px;
+  }
+  .login-box label{
+    display:block;
+    font-size:13.5px;
+    font-weight:600;
+    color:var(--navy);
+    margin-bottom:6px;
+  }
+  .login-box input{
+    width:100%;
+    padding:10px 12px;
+    border:1px solid #c3b892;
+    border-radius:4px;
+    background:#fffdf7;
+    font-family:'Noto Sans Gujarati', sans-serif;
+    font-size:14.5px;
+    color:var(--ink);
+    margin-bottom:14px;
+    box-shadow:0 0 5px rgba(169,124,52,0.28);
+    transition:border-color .15s, box-shadow .15s;
+  }
+  .login-box input:focus{
+    outline:none;
+    border-color:var(--navy);
+    box-shadow:0 0 0 3px rgba(30,58,95,0.15), 0 0 10px rgba(30,58,95,0.35);
+  }
+  .login-btn{
+    width:100%;
+    background:var(--navy-deep);
+    color:#f3ede0;
+    border:none;
+    padding:11px 20px;
+    border-radius:4px;
+    font-size:15px;
+    font-weight:600;
+    font-family:'Noto Sans Gujarati', sans-serif;
+    cursor:pointer;
+    margin-top:4px;
+  }
+  .login-btn:hover{background:var(--navy);}
+  .login-error{
+    color:var(--err);
+    font-size:13px;
+    margin-top:10px;
+    min-height:16px;
+    text-align:center;
+  }
+  body{
+    margin:0;
+    background:
+      repeating-linear-gradient(180deg, var(--paper-line) 0px, var(--paper-line) 1px, transparent 1px, transparent 38px),
+      var(--paper);
+    font-family:'Noto Sans Gujarati', sans-serif;
+    color:var(--ink);
+    min-height:100vh;
+    padding:28px 16px 60px;
+  }
+  .wrap{max-width:960px;margin:0 auto;}
+
+  .header{
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    border-bottom:3px double var(--navy);
+    padding-bottom:14px;
+    margin-bottom:22px;
+    flex-wrap:wrap;
+    gap:10px;
+  }
+  .header h1{
+    font-family:'Noto Serif Gujarati', serif;
+    font-weight:700;
+    font-size:26px;
+    color:var(--navy-deep);
+    margin:0;
+    letter-spacing:.5px;
+  }
+  .header .sub{
+    font-size:13px;
+    color:var(--ink-soft);
+  }
+  .reg-no{
+    font-family:'Noto Serif Gujarati', serif;
+    font-size:14px;
+    color:var(--brass);
+    border:1px solid var(--brass);
+    padding:4px 12px;
+    border-radius:2px;
+    background:rgba(169,124,52,0.07);
+  }
+  .logout-btn{
+    font-family:'Noto Sans Gujarati', sans-serif;
+    font-size:13px;
+    font-weight:600;
+    color:var(--err);
+    border:1px solid var(--err);
+    background:none;
+    padding:5px 14px;
+    border-radius:3px;
+    cursor:pointer;
+  }
+  .logout-btn:hover{background:rgba(163,64,47,0.08);}
+  .filter-btn{
+    font-family:'Noto Sans Gujarati', sans-serif;
+    font-size:12.5px;
+    font-weight:600;
+    color:var(--navy);
+    border:1px solid var(--navy);
+    background:none;
+    padding:5px 12px;
+    border-radius:14px;
+    cursor:pointer;
+  }
+  .filter-btn.active{background:var(--navy-deep);color:#f3ede0;border-color:var(--navy-deep);}
+  tr.cdr-done{background:#e3f3e1 !important;}
+  tr.cdr-done td{color:var(--ink);}
+  .cdrCheck{width:18px;height:18px;cursor:pointer;accent-color:#2e7d32;}
+
+  .setup{
+    background:var(--card);
+    border:1px solid var(--paper-line);
+    border-left:4px solid var(--brass);
+    border-radius:4px;
+    padding:14px 18px;
+    margin-bottom:22px;
+    font-size:13.5px;
+    color:var(--ink-soft);
+  }
+  .setup summary{cursor:pointer;font-weight:600;color:var(--navy-deep);font-size:14.5px;}
+  .setup .field-row{margin-top:12px;}
+  .setup input{width:100%;}
+  .setup .hint{margin-top:8px;line-height:1.8;}
+  .setup code{background:#efe6d0;padding:1px 6px;border-radius:3px;font-size:12.5px;}
+
+  .card{
+    background:var(--card);
+    border:1px solid var(--paper-line);
+    border-radius:6px;
+    box-shadow:0 1px 3px rgba(30,42,56,0.08), 0 8px 24px -12px rgba(30,42,56,0.12);
+    padding:26px 26px 22px;
+    margin-bottom:26px;
+  }
+  .card h2{
+    font-family:'Noto Serif Gujarati', serif;
+    font-size:19px;
+    color:var(--navy-deep);
+    margin:0 0 4px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .card h2::before{
+    content:"";
+    width:8px;height:8px;
+    background:var(--brass);
+    border-radius:50%;
+    display:inline-block;
+  }
+  .card .card-help{
+    font-size:12.5px;
+    color:var(--ink-soft);
+    margin:0 0 18px 18px;
+  }
+
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px 18px;}
+  .grid .full{grid-column:1 / -1;}
+  @media (max-width:640px){.grid{grid-template-columns:1fr;}}
+
+  label{
+    display:block;
+    font-size:13.5px;
+    font-weight:600;
+    color:var(--navy);
+    margin-bottom:6px;
+  }
+  label .req{color:var(--err);}
+  label .note{font-weight:400;color:var(--ink-soft);font-size:12px;}
+
+  input[type=text], input[type=date], input[type=email], input[type=password], select{
+    width:100%;
+    padding:10px 12px;
+    border:1px solid #c3b892;
+    border-radius:4px;
+    background:#fffdf7;
+    font-family:'Noto Sans Gujarati', sans-serif;
+    font-size:14.5px;
+    color:var(--ink);
+    transition:border-color .15s, box-shadow .15s;
+    box-shadow:0 0 5px rgba(169,124,52,0.28), 0 0 0 rgba(30,58,95,0);
+  }
+  input:focus, select:focus{
+    outline:none;
+    border-color:var(--navy);
+    box-shadow:0 0 0 3px rgba(30,58,95,0.15), 0 0 10px rgba(30,58,95,0.35);
+  }
+
+  .date-pair{display:flex;align-items:center;gap:8px;}
+  .date-pair span{color:var(--ink-soft);font-size:13px;white-space:nowrap;}
+
+  /* mobile + operator rows */
+  .mob-block{
+    grid-column:1 / -1;
+  }
+  .mob-rows{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+  .mob-row{
+    display:grid;
+    grid-template-columns:1fr 1fr 1fr auto;
+    gap:10px;
+    align-items:center;
+    background:#fffdf7;
+    border:1px solid var(--paper-line);
+    border-radius:5px;
+    padding:9px 10px;
+  }
+  @media (max-width:720px){
+    .mob-row{grid-template-columns:1fr 1fr;}
+    .mob-row .removeRow{grid-column:1 / -1;justify-self:end;}
+  }
+  .mob-row .row-num{
+    font-family:'Noto Serif Gujarati', serif;
+    font-weight:700;
+    color:var(--brass);
+    font-size:13px;
+    min-width:18px;
+  }
+  .removeRow{
+    background:none;
+    border:1px solid var(--err);
+    color:var(--err);
+    border-radius:4px;
+    width:30px;
+    height:30px;
+    font-size:16px;
+    line-height:1;
+    cursor:pointer;
+  }
+  .removeRow:hover{background:rgba(163,64,47,0.08);}
+  .addRowBtn{
+    align-self:flex-start;
+    margin-top:4px;
+    background:none;
+    border:1.5px dashed var(--navy);
+    color:var(--navy);
+    padding:8px 16px;
+    border-radius:5px;
+    font-size:13.5px;
+    font-family:'Noto Sans Gujarati', sans-serif;
+    font-weight:600;
+    cursor:pointer;
+  }
+  .addRowBtn:hover{background:rgba(30,58,95,0.06);}
+
+  .actions{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    margin-top:20px;
+    flex-wrap:wrap;
+  }
+  button.submit{
+    background:var(--navy-deep);
+    color:#f3ede0;
+    border:none;
+    padding:12px 26px;
+    border-radius:4px;
+    font-size:15px;
+    font-weight:600;
+    font-family:'Noto Sans Gujarati', sans-serif;
+    cursor:pointer;
+    letter-spacing:.3px;
+    transition:background .15s, transform .1s;
+  }
+  button.submit:hover{background:var(--navy);}
+  button.submit:active{transform:translateY(1px);}
+  button.submit:disabled{opacity:.55;cursor:not-allowed;}
+
+  .status{font-size:13.5px;}
+  .status.ok{color:var(--ok);}
+  .status.err{color:var(--err);}
+
+  .log-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    margin-bottom:14px;
+  }
+  .log-head h2{margin:0;}
+  .log-count{font-size:12.5px;color:var(--ink-soft);}
+
+  table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  thead th{
+    text-align:right;
+    font-family:'Noto Serif Gujarati', serif;
+    font-weight:700;
+    color:var(--navy-deep);
+    border-bottom:2px solid var(--navy);
+    padding:8px 8px;
+    white-space:nowrap;
+  }
+  tbody td{
+    padding:9px 8px;
+    border-bottom:1px solid var(--paper-line);
+    vertical-align:top;
+  }
+  tbody tr:hover{background:rgba(169,124,52,0.05);}
+  .idx-cell{color:var(--brass);font-weight:700;font-family:'Noto Serif Gujarati', serif;}
+  .op-tag{
+    display:inline-block;
+    font-size:11.5px;
+    font-weight:600;
+    padding:2px 8px;
+    border-radius:10px;
+    background:rgba(30,58,95,0.08);
+    color:var(--navy-deep);
+  }
+  .empty-row td{
+    text-align:center;
+    color:var(--ink-soft);
+    padding:22px 8px;
+  }
+
+  .footnote{
+    text-align:center;
+    font-size:12px;
+    color:var(--ink-soft);
+    margin-top:8px;
+  }
+
+  .toast{
+    position:fixed;
+    bottom:22px;
+    left:50%;
+    transform:translateX(-50%) translateY(20px);
+    background:var(--navy-deep);
+    color:#f3ede0;
+    padding:12px 22px;
+    border-radius:5px;
+    font-size:14px;
+    box-shadow:0 10px 30px -8px rgba(0,0,0,0.4);
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .25s, transform .25s;
+    z-index:50;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  .toast.err{background:var(--err);}
+</style>
+</head>
+<body>
+
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-box">
+    <div class="login-title">ડેટા એન્ટ્રી રજિસ્ટર</div>
+    <div class="login-sub">આગળ વધવા લોગિન કરો</div>
+    <label>યુઝર આઇડી</label>
+    <input type="text" id="loginUser" autocomplete="username" placeholder="યુઝર આઇડી લખો">
+    <label>પાસવર્ડ</label>
+    <input type="password" id="loginPass" autocomplete="current-password" placeholder="પાસવર્ડ લખો">
+    <button type="button" class="login-btn" id="loginBtn">લોગિન કરો</button>
+    <div class="login-error" id="loginError"></div>
+    <div style="text-align:center;margin-top:10px;">
+      <a href="javascript:void(0)" id="showRegisterLink" style="color:var(--navy);font-size:13.5px;text-decoration:underline;">નવો યુઝર છો? રજિસ્ટ્રેશન કરો</a>
+    </div>
+
+    <div id="registerBox" style="display:none;margin-top:14px;padding-top:14px;border-top:1px dashed var(--brass);">
+      <label>નવું યુઝર આઇડી</label>
+      <input type="text" id="regUser" placeholder="દા.ત. constable1">
+      <label>પાસવર્ડ</label>
+      <input type="password" id="regPass" placeholder="પાસવર્ડ">
+      <label>પાસવર્ડ ફરી લખો</label>
+      <input type="password" id="regPass2" placeholder="પાસવર્ડ ફરી લખો">
+      <button type="button" class="login-btn" id="registerBtn" style="margin-top:10px;">રજિસ્ટ્રેશન મોકલો</button>
+      <div class="login-error" id="registerMsg"></div>
+      <div style="text-align:center;margin-top:8px;">
+        <a href="javascript:void(0)" id="showLoginLink" style="color:var(--navy);font-size:13.5px;text-decoration:underline;">પાછા લોગિન પર જાવ</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="wrap" id="appMain" style="display:none;">
+
+  <div class="header">
+    <div>
+      <h1>ડેટા એન્ટ્રી રજિસ્ટર</h1>
+      <div class="sub">દરેક મોબાઇલ નંબર સામે તેની કંપની (ઓપરેટર) નોંધો</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <div class="reg-no" id="regNo">રજી. નં. —</div>
+      <div class="reg-no" id="currentUserLabel">યુઝર: —</div>
+      <button type="button" class="filter-btn" id="installBtn" style="display:none;">⬇ ઍપ ઇન્સ્ટોલ કરો</button>
+      <button type="button" class="logout-btn" id="logoutBtn">લોગ આઉટ</button>
+    </div>
+  </div>
+
+  <details class="setup" id="setupBox">
+    <summary>⚙ ગુગલ શીટ સાથે જોડો (પહેલા એક જ વાર કરવાનું)</summary>
+    <div class="hint">
+      1. તમારી Google Sheet ખોલો → <code>Extensions → Apps Script</code> → કોડ પેસ્ટ કરો (ચેટમાં નીચે આપેલો છે).<br>
+      2. <code>Deploy → New deployment → Web app</code> કરો, Access: <b>Anyone</b> રાખો.<br>
+      3. જે લિંક (URL) મળે એ નીચે પેસ્ટ કરો, અને તમારો ઈમેલ પણ નાખો — જેથી નવી એન્ટ્રી આવે ત્યારે તમને મેઇલ મળે.
+    </div>
+    <div class="field-row">
+      <label>Google Sheet ની લિંક (URL) <span class="req">*</span></label>
+      <input type="text" id="webhookUrl" placeholder="https://script.google.com/macros/s/xxxxx/exec">
+    </div>
+    <div class="field-row">
+      <label>તમારો ઈમેલ <span class="note">(નવી એન્ટ્રીની જાણ કરવા માટે)</span></label>
+      <input type="email" id="notifyEmail" placeholder="you@example.com">
+    </div>
+    <div class="field-row" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+      <button type="button" class="addRowBtn" id="testBtn" style="margin-top:0;">🔍 જોડાણ ચકાસો (Test)</button>
+      <span class="status" id="testStatus"></span>
+    </div>
+    <div class="hint" id="testResult" style="display:none;background:#efe6d0;padding:8px 10px;border-radius:4px;margin-top:10px;word-break:break-all;"></div>
+  </details>
+
+  <details class="setup" id="pwBox">
+    <summary>🔑 તમારો પાસવર્ડ બદલો</summary>
+    <div class="field-row">
+      <label>વર્તમાન પાસવર્ડ</label>
+      <input type="password" id="pwCurrent" placeholder="વર્તમાન પાસવર્ડ">
+    </div>
+    <div class="field-row">
+      <label>નવો પાસવર્ડ</label>
+      <input type="password" id="pwNew" placeholder="નવો પાસવર્ડ">
+    </div>
+    <div class="field-row">
+      <label>નવો પાસવર્ડ ફરી લખો</label>
+      <input type="password" id="pwNew2" placeholder="નવો પાસવર્ડ ફરી લખો">
+    </div>
+    <div class="field-row" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+      <button type="button" class="addRowBtn" id="pwChangeBtn" style="margin-top:0;">પાસવર્ડ બદલો</button>
+      <span class="status" id="pwMsg"></span>
+    </div>
+  </details>
+
+  <div class="card" id="userMgmtCard" style="display:none;">
+    <h2>યુઝર મેનેજમેન્ટ</h2>
+    <p class="card-help">નવા યુઝર આઇડી અહીંથી બનાવો — એ યુઝર પોતાના આઇડી-પાસવર્ડથી લોગિન કરી શકશે.</p>
+    <div class="grid">
+      <div>
+        <label>નવું યુઝર આઇડી</label>
+        <input type="text" id="newUserId" placeholder="દા.ત. constable1">
+      </div>
+      <div>
+        <label>પાસવર્ડ</label>
+        <input type="text" id="newUserPass" placeholder="પાસવર્ડ">
+      </div>
+    </div>
+    <div class="actions">
+      <button type="button" class="addRowBtn" id="addUserBtn" style="margin-top:0;">+ યુઝર ઉમેરો</button>
+      <span class="status" id="userMsg"></span>
+    </div>
+
+    <h2 style="margin-top:24px;font-size:16px;">પેન્ડિંગ રજિસ્ટ્રેશન વિનંતીઓ</h2>
+    <p class="card-help">યુઝરે જાતે રજિસ્ટ્રેશન કરેલું છે — મંજૂર કરો ત્યાર પછી જ એ લોગિન કરી શકશે.</p>
+    <table style="margin-top:8px;">
+      <thead><tr><th>યુઝર આઇડી</th><th></th></tr></thead>
+      <tbody id="pendingListBody"></tbody>
+    </table>
+
+    <h2 style="margin-top:24px;font-size:16px;">મંજૂર થયેલા યુઝર</h2>
+    <table style="margin-top:8px;">
+      <thead><tr><th>યુઝર આઇડી</th><th></th></tr></thead>
+      <tbody id="userListBody"></tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>નવી એન્ટ્રી ભરો</h2>
+    <p class="card-help">પહેલા સામાન્ય માહિતી ભરો, પછી નીચે દરેક મોબાઇલ નંબર અને તેની કંપની અલગ-અલગ લખો.</p>
+    <div class="grid">
+      <div class="full">
+        <label>પોલીસ કર્મચારીનું નામ <span class="req">*</span></label>
+        <input type="text" id="fName" placeholder="પુરું નામ લખો">
+      </div>
+
+      <div>
+        <label>ગુન્હા નંબર</label>
+        <input type="text" id="fCrime" placeholder="દા.ત. 123/2026">
+      </div>
+
+      <div>
+        <label>તારીખ થી — તારીખ સુધી</label>
+        <div class="date-pair">
+          <input type="date" id="fDateFrom">
+          <span>થી</span>
+          <input type="date" id="fDateTo">
+        </div>
+      </div>
+
+      <div class="full mob-block">
+        <label>મોબાઇલ નંબર / IMEI નંબર, કંપની અને આરોપીનું નામ <span class="req">*</span> <span class="note">— એક જ ખાનામાં 10 આંકડાનો મોબાઇલ નંબર અથવા 15 આંકડાનો IMEI નંબર લખો</span></label>
+        <div class="mob-rows" id="mobRows"></div>
+        <button type="button" class="addRowBtn" id="addRowBtn">+ બીજો નંબર ઉમેરો</button>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="submit" id="submitBtn">બધું સેવ કરો</button>
+      <span class="status" id="statusMsg"></span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="log-head">
+      <h2 id="logTitle">મારી એન્ટ્રીઓ</h2>
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <div id="filterToggle" style="display:none;gap:8px;">
+          <button type="button" class="filter-btn active" id="showMineBtn">મારી એન્ટ્રીઓ</button>
+          <button type="button" class="filter-btn" id="showAllBtn">બધી એન્ટ્રીઓ</button>
+        </div>
+        <button type="button" class="addRowBtn" id="downloadXlsxBtn" style="margin-top:0;">⬇ Excel ડાઉનલોડ</button>
+        <span class="log-count" id="logCount">0 એન્ટ્રી</span>
+      </div>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>ક્રમ</th>
+          <th>નામ</th>
+          <th>મોબાઇલ / IMEI નંબર</th>
+          <th>કંપની</th>
+          <th>આરોપીનું નામ</th>
+          <th>ગુન્હા નં.</th>
+          <th>તારીખ</th>
+          <th>યુઝર</th>
+          <th style="text-align:center;">CDR</th>
+        </tr>
+      </thead>
+      <tbody id="logBody">
+        <tr class="empty-row"><td colspan="9">હજુ કોઈ એન્ટ્રી નથી</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="footnote">દરેક એન્ટ્રી આ ડિવાઇસમાં સેવ થાય છે, અને લિંક સેટ કરી હોય તો તમારી Google Sheetમાં પણ જાય છે.</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ---- માસ્ટર એડમિન લોગિન (LOGIN_USER / LOGIN_PASS બદલવા માટે નીચે જુઓ) ----
+// માસ્ટર એડમિન લોગિન કરીને બીજા યુઝર આઇડી "યુઝર મેનેજમેન્ટ" સેક્શનમાંથી બનાવી શકે છે.
+const LOGIN_USER = 'admin';
+const LOGIN_PASS = 'lcbraj@2026';
+let currentUser = null;
+
+// ---- ડેટા સેવ કરવાની વ્યવસ્થા ----
+// આ ફાઇલ Claude.ai ની બહાર, સામાન્ય વેબપેજ તરીકે ચાલે છે, એટલે "window.storage"
+// (જે ફક્ત Claude.ai ના artifact ની અંદર જ કામ કરે છે) અહીં ઉપલબ્ધ નથી.
+// localStorage ફક્ત "એ જ બ્રાઉઝર/ડિવાઇસ" પૂરતું સેવ રહે છે — બીજા કમ્પ્યુટર/મોબાઇલ પર દેખાય નહીં.
+// એટલે યુઝર આઇડી-પાસવર્ડ હવે Google Sheet પર (એ જ webhook મારફતે જે એન્ટ્રી માટે વપરાય છે) સેવ થાય છે,
+// જેથી કોઈપણ ડિવાઇસ પરથી લોગિન ચકાસી શકાય. localStorage ફક્ત ઓફલાઇન બેકઅપ તરીકે વપરાય છે.
+const storage = {
+  async get(key){
+    try{
+      const raw = localStorage.getItem('gunho:' + key);
+      return raw === null ? null : { key, value: raw };
+    }catch(e){ return null; }
+  },
+  async set(key, value){
+    try{
+      localStorage.setItem('gunho:' + key, value);
+      return { key, value };
+    }catch(e){ return null; }
+  }
+};
+
+function currentWebhookUrl(){
+  const el = document.getElementById('webhookUrl');
+  return el ? el.value.trim() : '';
+}
+
+async function fetchUsersFromServer(){
+  const url = currentWebhookUrl();
+  if(!url) return null;
+  try{
+    const sep = url.includes('?') ? '&' : '?';
+    const res = await fetch(url + sep + 'action=listUsers');
+    const text = await res.text();
+    const parsed = JSON.parse(text);
+    if(parsed && parsed.status === 'ok' && Array.isArray(parsed.users)) return parsed.users;
+    return null;
+  }catch(e){ return null; }
+}
+
+async function loadUsers(){
+  const serverUsers = await fetchUsersFromServer();
+  if(serverUsers){
+    try{ await storage.set('app-users', JSON.stringify(serverUsers)); }catch(e){}
+    return serverUsers;
+  }
+  // Sheet સુધી પહોંચી ન શકાય (ઈન્ટરનેટ ન હોય) ત્યારે — છેલ્લે સેવ કરેલી યાદી વાપરો
+  try{
+    const res = await storage.get('app-users');
+    return res && res.value ? JSON.parse(res.value) : [];
+  }catch(e){ return []; }
+}
+
+async function addUserOnServer(username, password){
+  const url = currentWebhookUrl();
+  if(!url) return { status:'error', message:'પહેલા ઉપર Google Sheet ની લિંક સેટ કરો.' };
+  try{
+    const res = await fetch(url, {
+      method:'POST',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify({ action:'addUser', username, password })
+    });
+    const text = await res.text();
+    return JSON.parse(text);
+  }catch(e){
+    return { status:'error', message:'જોડાણમાં ભૂલ: ' + e.message };
+  }
+}
+
+async function registerUserOnServer(username, password){
+  const url = currentWebhookUrl();
+  if(!url) return { status:'error', message:'સિસ્ટમમાં હાલ જોડાણ સેટ નથી. એડમિનનો સંપર્ક કરો.' };
+  try{
+    const res = await fetch(url, {
+      method:'POST',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify({ action:'registerUser', username, password })
+    });
+    const text = await res.text();
+    return JSON.parse(text);
+  }catch(e){
+    return { status:'error', message:'જોડાણમાં ભૂલ: ' + e.message };
+  }
+}
+
+async function approveUserOnServer(username){
+  const url = currentWebhookUrl();
+  if(!url) return { status:'error' };
+  try{
+    const res = await fetch(url, {
+      method:'POST',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify({ action:'approveUser', username })
+    });
+    const text = await res.text();
+    return JSON.parse(text);
+  }catch(e){
+    return { status:'error', message: e.message };
+  }
+}
+
+async function deleteUserOnServer(username){
+  const url = currentWebhookUrl();
+  if(!url) return { status:'error' };
+  try{
+    const res = await fetch(url, {
+      method:'POST',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify({ action:'deleteUser', username })
+    });
+    const text = await res.text();
+    return JSON.parse(text);
+  }catch(e){
+    return { status:'error', message: e.message };
+  }
+}
+
+async function changePasswordOnServer(username, currentPassword, newPassword){
+  const url = currentWebhookUrl();
+  if(!url) return { status:'error', message:'સિસ્ટમમાં હાલ જોડાણ સેટ નથી.' };
+  try{
+    const res = await fetch(url, {
+      method:'POST',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify({ action:'changePassword', username, currentPassword, newPassword })
+    });
+    const text = await res.text();
+    return JSON.parse(text);
+  }catch(e){
+    return { status:'error', message:'જોડાણમાં ભૂલ: ' + e.message };
+  }
+}
+
+async function resetPasswordOnServer(username, newPassword){
+  const url = currentWebhookUrl();
+  if(!url) return { status:'error' };
+  try{
+    const res = await fetch(url, {
+      method:'POST',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify({ action:'resetPassword', username, newPassword })
+    });
+    const text = await res.text();
+    return JSON.parse(text);
+  }catch(e){
+    return { status:'error', message: e.message };
+  }
+}
+
+async function renderUserList(){
+  const list = await loadUsers();
+  const pending = list.filter(u => u.status === 'pending');
+  const approved = list.filter(u => u.status !== 'pending');
+
+  const pendingBody = document.getElementById('pendingListBody');
+  if(pending.length === 0){
+    pendingBody.innerHTML = '<tr><td colspan="2" style="text-align:center;color:var(--ink-soft);">હાલ કોઈ પેન્ડિંગ વિનંતી નથી</td></tr>';
+  } else {
+    pendingBody.innerHTML = pending.map((u,i)=>`<tr><td>${escapeHtml(u.username)}</td><td style="text-align:left;white-space:nowrap;">
+      <button type="button" class="addRowBtn approveUserBtn" style="margin-top:0;padding:4px 10px;" data-u="${escapeHtml(u.username)}">✓ મંજૂર કરો</button>
+      <button type="button" class="removeRow rejectUserBtn" data-u="${escapeHtml(u.username)}">✕</button>
+    </td></tr>`).join('');
+    pendingBody.querySelectorAll('.approveUserBtn').forEach(btn=>{
+      btn.addEventListener('click', async ()=>{
+        btn.disabled = true;
+        await approveUserOnServer(btn.dataset.u);
+        renderUserList();
+      });
+    });
+    pendingBody.querySelectorAll('.rejectUserBtn').forEach(btn=>{
+      btn.addEventListener('click', async ()=>{
+        btn.disabled = true;
+        await deleteUserOnServer(btn.dataset.u);
+        renderUserList();
+      });
+    });
+  }
+
+  const body = document.getElementById('userListBody');
+  if(approved.length === 0){
+    body.innerHTML = '<tr><td colspan="2" style="text-align:center;color:var(--ink-soft);">હજુ કોઈ યુઝર ઉમેર્યા નથી</td></tr>';
+    return;
+  }
+  body.innerHTML = approved.map((u,i)=>`<tr><td>${escapeHtml(u.username)}</td><td style="text-align:left;white-space:nowrap;">
+    <button type="button" class="addRowBtn resetPassBtn" style="margin-top:0;padding:4px 10px;" data-u="${escapeHtml(u.username)}">🔑 પાસવર્ડ રીસેટ</button>
+    <button type="button" class="removeRow removeUserBtn" data-u="${escapeHtml(u.username)}">×</button>
+  </td></tr>`).join('');
+  body.querySelectorAll('.resetPassBtn').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const username = btn.dataset.u;
+      const newPassword = window.prompt('યુઝર "' + username + '" માટે નવો પાસવર્ડ લખો:');
+      if(!newPassword) return;
+      btn.disabled = true;
+      const result = await resetPasswordOnServer(username, newPassword.trim());
+      btn.disabled = false;
+      if(result && result.status === 'ok'){
+        alert('✓ પાસવર્ડ રીસેટ થઈ ગયો.');
+      } else {
+        alert((result && result.message) || 'પાસવર્ડ રીસેટ કરવામાં ભૂલ આવી.');
+      }
+    });
+  });
+  body.querySelectorAll('.removeUserBtn').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      btn.disabled = true;
+      await deleteUserOnServer(btn.dataset.u);
+      renderUserList();
+    });
+  });
+}
+
+document.getElementById('addUserBtn').addEventListener('click', async ()=>{
+  const uid = document.getElementById('newUserId').value.trim();
+  const pw = document.getElementById('newUserPass').value.trim();
+  const msg = document.getElementById('userMsg');
+  if(!uid || !pw){
+    msg.textContent = 'યુઝર આઇડી અને પાસવર્ડ બંને લખો.';
+    msg.className = 'status err';
+    return;
+  }
+  if(uid === LOGIN_USER){
+    msg.textContent = 'આ યુઝર આઇડી પહેલેથી છે.';
+    msg.className = 'status err';
+    return;
+  }
+  msg.textContent = 'ઉમેરી રહ્યા છીએ...';
+  msg.className = 'status';
+  const result = await addUserOnServer(uid, pw);
+  if(result && result.status === 'ok'){
+    document.getElementById('newUserId').value = '';
+    document.getElementById('newUserPass').value = '';
+    msg.textContent = '✓ યુઝર ઉમેરાયો — હવે ગમે તે ડિવાઇસ પરથી લોગિન કરી શકશે.';
+    msg.className = 'status ok';
+    renderUserList();
+  } else {
+    msg.textContent = (result && result.message) || 'યુઝર ઉમેરવામાં ભૂલ આવી.';
+    msg.className = 'status err';
+  }
+});
+
+function checkLogin(){
+  const saved = sessionStorage.getItem('gunho-logged-in');
+  if(saved){
+    currentUser = saved;
+    showApp();
+  }
+}
+
+function showApp(){
+  document.getElementById('loginOverlay').style.display = 'none';
+  document.getElementById('appMain').style.display = 'block';
+  document.getElementById('currentUserLabel').textContent = 'યુઝર: ' + currentUser;
+  const isAdmin = (currentUser === LOGIN_USER);
+  document.getElementById('userMgmtCard').style.display = isAdmin ? 'block' : 'none';
+  document.getElementById('filterToggle').style.display = isAdmin ? 'flex' : 'none';
+  if(isAdmin) renderUserList();
+  renderLog();
+}
+
+async function attemptLogin(){
+  const u = document.getElementById('loginUser').value.trim();
+  const p = document.getElementById('loginPass').value;
+  const err = document.getElementById('loginError');
+  const btn = document.getElementById('loginBtn');
+
+  let ok = (u === LOGIN_USER && p === LOGIN_PASS);
+  if(!ok){
+    btn.disabled = true;
+    err.textContent = 'ચકાસી રહ્યા છીએ...';
+    const users = await loadUsers();
+    const match = users.find(x => x.username === u && x.password === p);
+    btn.disabled = false;
+    if(match && match.status === 'pending'){
+      err.textContent = 'તમારું રજિસ્ટ્રેશન હજુ એડમિનની મંજૂરીની રાહ જોઈ રહ્યું છે.';
+      document.getElementById('loginPass').value = '';
+      return;
+    }
+    ok = !!match;
+  }
+
+  if(ok){
+    currentUser = u;
+    sessionStorage.setItem('gunho-logged-in', u);
+    err.textContent = '';
+    showApp();
+  } else {
+    err.textContent = 'યુઝર આઇડી અથવા પાસવર્ડ ખોટો છે.';
+    document.getElementById('loginPass').value = '';
+  }
+}
+
+function logout(){
+  sessionStorage.removeItem('gunho-logged-in');
+  currentUser = null;
+  document.getElementById('loginOverlay').style.display = 'flex';
+  document.getElementById('appMain').style.display = 'none';
+  document.getElementById('loginUser').value = '';
+  document.getElementById('loginPass').value = '';
+}
+
+document.getElementById('loginBtn').addEventListener('click', attemptLogin);
+document.getElementById('loginPass').addEventListener('keydown', (e)=>{ if(e.key === 'Enter') attemptLogin(); });
+document.getElementById('loginUser').addEventListener('keydown', (e)=>{ if(e.key === 'Enter') document.getElementById('loginPass').focus(); });
+document.getElementById('logoutBtn').addEventListener('click', logout);
+
+document.getElementById('pwChangeBtn').addEventListener('click', async ()=>{
+  const msg = document.getElementById('pwMsg');
+  const btn = document.getElementById('pwChangeBtn');
+
+  if(currentUser === LOGIN_USER){
+    msg.textContent = 'એડમિનનો પાસવર્ડ કોડમાં સેટ છે — અહીંથી બદલી શકાશે નહીં.';
+    msg.className = 'status err';
+    return;
+  }
+
+  const current = document.getElementById('pwCurrent').value;
+  const next = document.getElementById('pwNew').value.trim();
+  const next2 = document.getElementById('pwNew2').value.trim();
+
+  if(!current || !next || !next2){
+    msg.textContent = 'બધા ખાના ભરો.';
+    msg.className = 'status err';
+    return;
+  }
+  if(next !== next2){
+    msg.textContent = 'નવો પાસવર્ડ બંને જગ્યાએ સરખો લખો.';
+    msg.className = 'status err';
+    return;
+  }
+
+  btn.disabled = true;
+  msg.textContent = 'બદલી રહ્યા છીએ...';
+  msg.className = 'status';
+  const result = await changePasswordOnServer(currentUser, current, next);
+  btn.disabled = false;
+
+  if(result && result.status === 'ok'){
+    document.getElementById('pwCurrent').value = '';
+    document.getElementById('pwNew').value = '';
+    document.getElementById('pwNew2').value = '';
+    msg.textContent = '✓ પાસવર્ડ બદલાઈ ગયો.';
+    msg.className = 'status ok';
+  } else {
+    msg.textContent = (result && result.message) || 'પાસવર્ડ બદલવામાં ભૂલ આવી.';
+    msg.className = 'status err';
+  }
+});
+
+document.getElementById('showRegisterLink').addEventListener('click', ()=>{
+  document.getElementById('registerBox').style.display = 'block';
+  document.getElementById('showRegisterLink').parentElement.style.display = 'none';
+  document.getElementById('loginError').textContent = '';
+});
+document.getElementById('showLoginLink').addEventListener('click', ()=>{
+  document.getElementById('registerBox').style.display = 'none';
+  document.getElementById('showRegisterLink').parentElement.style.display = 'block';
+  document.getElementById('registerMsg').textContent = '';
+});
+
+document.getElementById('registerBtn').addEventListener('click', async ()=>{
+  const uid = document.getElementById('regUser').value.trim();
+  const pw = document.getElementById('regPass').value;
+  const pw2 = document.getElementById('regPass2').value;
+  const msg = document.getElementById('registerMsg');
+  const btn = document.getElementById('registerBtn');
+
+  if(!uid || !pw || !pw2){
+    msg.textContent = 'બધા ખાના ભરો.';
+    msg.className = 'login-error';
+    return;
+  }
+  if(uid === LOGIN_USER){
+    msg.textContent = 'આ યુઝર આઇડી વાપરી શકાશે નહીં.';
+    msg.className = 'login-error';
+    return;
+  }
+  if(pw !== pw2){
+    msg.textContent = 'બંને પાસવર્ડ સરખા લખો.';
+    msg.className = 'login-error';
+    return;
+  }
+
+  btn.disabled = true;
+  msg.textContent = 'મોકલી રહ્યા છીએ...';
+  msg.style.color = 'var(--ink-soft)';
+  const result = await registerUserOnServer(uid, pw);
+  btn.disabled = false;
+
+  if(result && result.status === 'ok'){
+    document.getElementById('regUser').value = '';
+    document.getElementById('regPass').value = '';
+    document.getElementById('regPass2').value = '';
+    msg.style.color = '#2e7d32';
+    msg.textContent = '✓ રજિસ્ટ્રેશન વિનંતી મોકલાઈ ગઈ. એડમિન મંજૂર કરે પછી લોગિન કરી શકશો.';
+  } else {
+    msg.style.color = '';
+    msg.className = 'login-error';
+    msg.textContent = (result && result.message) || 'રજિસ્ટ્રેશનમાં ભૂલ આવી.';
+  }
+});
+
+let logFilter = 'mine';
+document.getElementById('showMineBtn').addEventListener('click', ()=>{
+  logFilter = 'mine';
+  document.getElementById('showMineBtn').classList.add('active');
+  document.getElementById('showAllBtn').classList.remove('active');
+  document.getElementById('logTitle').textContent = 'મારી એન્ટ્રીઓ';
+  renderLog();
+});
+document.getElementById('showAllBtn').addEventListener('click', ()=>{
+  logFilter = 'all';
+  document.getElementById('showAllBtn').classList.add('active');
+  document.getElementById('showMineBtn').classList.remove('active');
+  document.getElementById('logTitle').textContent = 'બધી એન્ટ્રીઓ';
+  renderLog();
+});
+
+const OPERATORS = ['Jio','Airtel','Vi (Vodafone Idea)','BSNL','IMEI','અન્ય'];
+const DEFAULT_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbzIHDe3LiG0UJN2jYwBG3lUtDjHUdRfOOZtWL4R57Wxsd45b4H_K6kvlV6QIjIC9LqY/exec';
+const DEFAULT_NOTIFY_EMAIL = 'lcb-sp-raj@gujarat.gov.in';
+const CONFIG_VERSION = '4';
+let entries = [];
+let regCounter = 0;
+let rowSeq = 0;
+
+function toast(msg, isErr){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (isErr ? ' err' : '');
+  setTimeout(()=>{ t.className = 'toast'; }, 3200);
+}
+
+function operatorOptions(selected){
+  return OPERATORS.map(op => `<option value="${op}" ${op===selected?'selected':''}>${op}</option>`).join('');
+}
+
+function addMobileRow(){
+  rowSeq++;
+  const id = rowSeq;
+  const wrap = document.getElementById('mobRows');
+  const row = document.createElement('div');
+  row.className = 'mob-row';
+  row.dataset.id = id;
+  row.innerHTML = `
+    <input type="text" class="mobInput" placeholder="મોબાઇલ નંબર (10) અથવા IMEI (15)" inputmode="numeric" maxlength="17">
+    <select class="opInput">${operatorOptions()}</select>
+    <input type="text" class="accInput" placeholder="આરોપીનું નામ">
+    <button type="button" class="removeRow" title="આ નંબર કાઢી નાખો">×</button>
+  `;
+  wrap.appendChild(row);
+  row.querySelector('.removeRow').addEventListener('click', ()=>{
+    if(document.querySelectorAll('.mob-row').length > 1){
+      row.remove();
+    } else {
+      row.querySelector('.mobInput').value = '';
+    }
+  });
+}
+
+document.getElementById('addRowBtn').addEventListener('click', addMobileRow);
+
+async function loadSettings(){
+  document.getElementById('webhookUrl').value = DEFAULT_WEBHOOK_URL;
+  document.getElementById('notifyEmail').value = DEFAULT_NOTIFY_EMAIL;
+
+  let storedVersion = null;
+  try{
+    const v = await storage.get('config-version');
+    storedVersion = v ? v.value : null;
+  }catch(e){}
+
+  if(storedVersion === CONFIG_VERSION){
+    // user's saved settings match this file's built-in defaults' generation — safe to use whatever they last set
+    try{
+      const url = await storage.get('webhook-url');
+      if(url && url.value) document.getElementById('webhookUrl').value = url.value;
+    }catch(e){}
+    try{
+      const em = await storage.get('notify-email');
+      if(em && em.value) document.getElementById('notifyEmail').value = em.value;
+    }catch(e){}
+  }
+  // otherwise (new file version) — keep the built-in defaults above and overwrite storage below
+  await saveSettings();
+  try{ await storage.set('config-version', CONFIG_VERSION); }catch(e){}
+}
+
+async function saveSettings(){
+  const url = document.getElementById('webhookUrl').value.trim();
+  const em = document.getElementById('notifyEmail').value.trim();
+  try{ await storage.set('webhook-url', url); }catch(e){}
+  try{ await storage.set('notify-email', em); }catch(e){}
+}
+
+function makeId(){
+  return Date.now().toString(36) + Math.random().toString(36).slice(2,8);
+}
+
+async function loadEntries(){
+  try{
+    const res = await storage.get('entries-log');
+    entries = res && res.value ? JSON.parse(res.value) : [];
+  }catch(e){ entries = []; }
+  entries.forEach(e => {
+    if(!e.id) e.id = makeId();
+    if(e.cdr === undefined) e.cdr = false;
+  });
+  regCounter = entries.length;
+  renderLog();
+  document.getElementById('regNo').textContent = 'રજી. નં. ' + String(regCounter).padStart(4,'0');
+}
+
+async function persistEntries(){
+  try{
+    await storage.set('entries-log', JSON.stringify(entries.slice(0,300)));
+  }catch(e){}
+}
+
+function getVisibleEntries(){
+  const isAdmin = (currentUser === LOGIN_USER);
+  const showAll = isAdmin && logFilter === 'all';
+  return showAll ? entries : entries.filter(e => e.username === currentUser);
+}
+
+document.getElementById('downloadXlsxBtn').addEventListener('click', ()=>{
+  const list = getVisibleEntries();
+  if(list.length === 0){
+    alert('ડાઉનલોડ કરવા માટે કોઈ એન્ટ્રી નથી.');
+    return;
+  }
+  const rows = list.map((r, i) => ({
+    'ક્રમ': list.length - i,
+    'પોલીસ કર્મચારીનું નામ': r.name || '',
+    'મોબાઇલ / IMEI નંબર': r.mobile || '',
+    'કંપની': r.operator || '',
+    'આરોપીનું નામ': r.accusedName || '',
+    'ગુન્હા નં.': r.crimeNumber || '',
+    'તારીખ થી': r.dateFrom || '',
+    'તારીખ સુધી': r.dateTo || '',
+    'યુઝર': r.username || '',
+    'CDR આવ્યું': r.cdr ? 'હા' : 'ના'
+  }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'એન્ટ્રીઓ');
+  const stamp = new Date().toISOString().slice(0,10);
+  XLSX.writeFile(wb, 'gunho-entries-' + stamp + '.xlsx');
+});
+
+function renderLog(){
+  const body = document.getElementById('logBody');
+  const list = getVisibleEntries();
+
+  document.getElementById('logCount').textContent = list.length + ' એન્ટ્રી';
+  if(list.length === 0){
+    body.innerHTML = '<tr class="empty-row"><td colspan="9">હજુ કોઈ એન્ટ્રી નથી</td></tr>';
+    return;
+  }
+  body.innerHTML = list.slice(0,60).map((r, i)=>{
+    const dateStr = [r.dateFrom, r.dateTo].filter(Boolean).join(' → ') || '—';
+    return `<tr class="${r.cdr ? 'cdr-done' : ''}">
+      <td class="idx-cell">${String(list.length - i).padStart(3,'0')}</td>
+      <td>${escapeHtml(r.name)}</td>
+      <td>${escapeHtml(r.mobile)}</td>
+      <td><span class="op-tag">${escapeHtml(r.operator || '—')}</span></td>
+      <td>${escapeHtml(r.accusedName || '—')}</td>
+      <td>${escapeHtml(r.crimeNumber || '—')}</td>
+      <td>${escapeHtml(dateStr)}</td>
+      <td>${escapeHtml(r.username || '—')}</td>
+      <td style="text-align:center;"><input type="checkbox" class="cdrCheck" data-id="${r.id}" ${r.cdr ? 'checked' : ''}></td>
+    </tr>`;
+  }).join('');
+
+  body.querySelectorAll('.cdrCheck').forEach(cb=>{
+    cb.addEventListener('change', async (e)=>{
+      const id = e.target.dataset.id;
+      const entry = entries.find(x => x.id === id);
+      if(entry){
+        entry.cdr = e.target.checked;
+        await persistEntries();
+        renderLog();
+      }
+    });
+  });
+}
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+async function submitForm(){
+  const name = document.getElementById('fName').value.trim();
+  const crimeNumber = document.getElementById('fCrime').value.trim();
+  const dateFrom = document.getElementById('fDateFrom').value;
+  const dateTo = document.getElementById('fDateTo').value;
+  const webhookUrl = document.getElementById('webhookUrl').value.trim();
+  const notifyEmail = document.getElementById('notifyEmail').value.trim();
+  const statusEl = document.getElementById('statusMsg');
+  const btn = document.getElementById('submitBtn');
+
+  const mobRows = Array.from(document.querySelectorAll('.mob-row')).map(r=>({
+    mobile: r.querySelector('.mobInput').value.trim(),
+    operator: r.querySelector('.opInput').value,
+    accusedName: r.querySelector('.accInput').value.trim()
+  })).filter(r => r.mobile);
+
+  if(!name || mobRows.length === 0){
+    statusEl.textContent = 'નામ લખો અને ઓછામાં ઓછો એક મોબાઇલ/IMEI નંબર નાખો.';
+    statusEl.className = 'status err';
+    return;
+  }
+
+  const rows = mobRows.map(m => ({
+    name, mobile: m.mobile, operator: m.operator, accusedName: m.accusedName, crimeNumber, dateFrom, dateTo, username: currentUser
+  }));
+
+  btn.disabled = true;
+  statusEl.textContent = 'સેવ કરી રહ્યા છીએ...';
+  statusEl.className = 'status';
+
+  const stamp = new Date().toISOString();
+  rows.forEach(r => entries.unshift({...r, ts: stamp, id: makeId(), cdr: false}));
+  await persistEntries();
+  regCounter = entries.length;
+  document.getElementById('regNo').textContent = 'રજી. નં. ' + String(regCounter).padStart(4,'0');
+  renderLog();
+  await saveSettings();
+
+  if(webhookUrl){
+    let confirmed = false;
+    let serverError = null;
+    try{
+      const res = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: {'Content-Type':'text/plain;charset=utf-8'},
+        body: JSON.stringify({ rows, notifyEmail })
+      });
+      const text = await res.text();
+      try{
+        const parsed = JSON.parse(text);
+        if(parsed.status === 'ok'){ confirmed = true; }
+        else { serverError = parsed.message || text; }
+      }catch(pe){
+        confirmed = res.ok;
+      }
+    }catch(err){
+      // CORS/network block — fall back to a blind send so data still has a chance to reach the sheet
+      try{
+        await fetch(webhookUrl, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: {'Content-Type':'text/plain;charset=utf-8'},
+          body: JSON.stringify({ rows, notifyEmail })
+        });
+      }catch(e2){ serverError = e2.message; }
+    }
+
+    if(confirmed){
+      statusEl.textContent = `✓ ${rows.length} નંબર ઉમેરાયા — Google Sheet પર પહોંચી ગયું`;
+      statusEl.className = 'status ok';
+      toast(`${rows.length} નવી એન્ટ્રી ઉમેરાઈ`);
+    } else if(serverError){
+      statusEl.textContent = `${rows.length} નંબર ડિવાઇસ પર સેવ થયા, પણ Sheet પર ભૂલ આવી: ${serverError}`;
+      statusEl.className = 'status err';
+      toast('Sheet પર મોકલવામાં ભૂલ — ઉપર "જોડાણ ચકાસો" દબાવો', true);
+    } else {
+      statusEl.textContent = `${rows.length} નંબર ડિવાઇસ પર સેવ થયા. Sheet પર મોકલ્યું, પણ ખાતરી કરવા "જોડાણ ચકાસો" દબાવીને જુઓ.`;
+      statusEl.className = 'status ok';
+      toast(`${rows.length} નવી એન્ટ્રી ઉમેરાઈ`);
+    }
+  } else {
+    statusEl.textContent = `✓ ${rows.length} નંબર ડિવાઇસ પર સેવ થયા (Google Sheet ની લિંક હજુ સેટ નથી)`;
+    statusEl.className = 'status ok';
+    toast(`${rows.length} નવી એન્ટ્રી ઉમેરાઈ (ફક્ત આ ડિવાઇસમાં)`);
+  }
+
+  document.getElementById('fName').value = '';
+  document.getElementById('fCrime').value = '';
+  document.getElementById('fDateFrom').value = '';
+  document.getElementById('fDateTo').value = '';
+  document.getElementById('mobRows').innerHTML = '';
+  addMobileRow();
+  btn.disabled = false;
+}
+
+async function testConnection(){
+  const url = document.getElementById('webhookUrl').value.trim();
+  const testStatus = document.getElementById('testStatus');
+  const testResult = document.getElementById('testResult');
+  testResult.style.display = 'none';
+
+  if(!url){
+    testStatus.textContent = 'પહેલા ઉપર Google Sheet ની લિંક નાખો.';
+    testStatus.className = 'status err';
+    return;
+  }
+  if(!/\/exec$/.test(url)){
+    testStatus.textContent = '⚠ લિંક "/exec" થી પૂરી થવી જોઈએ (ડિપ્લોય કરેલી લિંક જ વાપરો, "/dev" વાળી નહીં).';
+    testStatus.className = 'status err';
+  }
+
+  testStatus.textContent = 'ચકાસી રહ્યા છીએ...';
+  testStatus.className = 'status';
+
+  try{
+    const res = await fetch(url, { method: 'GET' });
+    const text = await res.text();
+    testResult.style.display = 'block';
+    testResult.textContent = 'જવાબ મળ્યો: ' + text;
+    if(res.ok){
+      testStatus.textContent = '✓ જોડાણ બરાબર છે — વેબ એપ સુધી પહોંચ્યા.';
+      testStatus.className = 'status ok';
+    } else {
+      testStatus.textContent = '✗ જવાબમાં ભૂલ (સ્ટેટસ ' + res.status + '). નીચે જવાબ જુઓ.';
+      testStatus.className = 'status err';
+    }
+  }catch(err){
+    testStatus.textContent = '✗ લિંક સુધી પહોંચી શકાયું નહીં — Deploy સેટિંગ્સ ફરી ચકાસો (નીચે સૂચના જુઓ).';
+    testStatus.className = 'status err';
+    testResult.style.display = 'block';
+    testResult.textContent = 'ટેકનિકલ ભૂલ: ' + err.message;
+  }
+}
+
+document.getElementById('submitBtn').addEventListener('click', submitForm);
+document.getElementById('webhookUrl').addEventListener('change', saveSettings);
+document.getElementById('notifyEmail').addEventListener('change', saveSettings);
+document.getElementById('testBtn').addEventListener('click', testConnection);
+
+(async function init(){
+  addMobileRow();
+  await loadSettings();
+  await loadEntries();
+  checkLogin();
+})();
+
+// ---- PWA: સર્વિસ વર્કર રજિસ્ટર + "ઍપ ઇન્સ્ટોલ કરો" બટન ----
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  });
+}
+
+let deferredInstallPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  const btn = document.getElementById('installBtn');
+  if(btn) btn.style.display = 'inline-block';
+});
+
+document.getElementById('installBtn').addEventListener('click', async () => {
+  if(!deferredInstallPrompt) return;
+  deferredInstallPrompt.prompt();
+  await deferredInstallPrompt.userChoice;
+  deferredInstallPrompt = null;
+  document.getElementById('installBtn').style.display = 'none';
+});
+
+window.addEventListener('appinstalled', () => {
+  const btn = document.getElementById('installBtn');
+  if(btn) btn.style.display = 'none';
+});
+</script>
+</body>
+</html>
