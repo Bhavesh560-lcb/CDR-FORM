@@ -26,6 +26,10 @@
     --ok:#2f6b4f;
     --err:#a3402f;
     --card:#fbf8f0;
+    --glow-a:#2dd4bf;
+    --glow-b:#8b5cf6;
+    --glow-shadow-a:rgba(45,212,191,0.45);
+    --glow-shadow-b:rgba(139,92,246,0.45);
   }
   *{box-sizing:border-box;}
   .login-overlay{
@@ -171,13 +175,21 @@
     font-size:12.5px;
     font-weight:600;
     color:var(--navy);
-    border:1px solid var(--navy);
-    background:none;
+    border:2px solid transparent;
+    background:
+      linear-gradient(var(--card), var(--card)) padding-box,
+      linear-gradient(135deg, var(--glow-a), var(--glow-b)) border-box;
     padding:5px 12px;
     border-radius:14px;
     cursor:pointer;
+    box-shadow:0 0 8px -1px var(--glow-shadow-a), 0 0 12px -2px var(--glow-shadow-b);
   }
-  .filter-btn.active{background:var(--navy-deep);color:#f3ede0;border-color:var(--navy-deep);}
+  .filter-btn.active{
+    background:
+      linear-gradient(var(--navy-deep), var(--navy-deep)) padding-box,
+      linear-gradient(135deg, var(--glow-a), var(--glow-b)) border-box;
+    color:#f3ede0;
+  }
   tr.cdr-done{background:#e3f3e1 !important;}
   tr.cdr-done td{color:var(--ink);}
   .cdrCheck{width:18px;height:18px;cursor:pointer;accent-color:#2e7d32;}
@@ -206,6 +218,32 @@
     padding:26px 26px 22px;
     margin-bottom:26px;
   }
+
+  /* ---- ગ્લો બોર્ડર (ફોટા મુજબ) ---- */
+  .card.glow{
+    border-radius:16px;
+    border:2px solid transparent;
+    background:
+      linear-gradient(var(--card), var(--card)) padding-box,
+      linear-gradient(135deg, var(--glow-a), var(--glow-b)) border-box;
+    box-shadow:
+      0 0 14px -2px var(--glow-shadow-a),
+      0 0 22px -4px var(--glow-shadow-b),
+      0 1px 3px rgba(30,42,56,0.08), 0 8px 24px -12px rgba(30,42,56,0.12);
+  }
+  .card.glow-teal-purple{
+    --glow-a:#2dd4bf; --glow-b:#8b5cf6;
+    --glow-shadow-a:rgba(45,212,191,0.45); --glow-shadow-b:rgba(139,92,246,0.45);
+  }
+  .card.glow-green-teal{
+    --glow-a:#4ade80; --glow-b:#2dd4bf;
+    --glow-shadow-a:rgba(74,222,128,0.45); --glow-shadow-b:rgba(45,212,191,0.45);
+  }
+  .card.glow-gold-pink{
+    --glow-a:#eab308; --glow-b:#f472b6;
+    --glow-shadow-a:rgba(234,179,8,0.45); --glow-shadow-b:rgba(244,114,182,0.45);
+  }
+
   .card h2{
     font-family:'Noto Serif Gujarati', serif;
     font-size:19px;
@@ -245,19 +283,20 @@
   input[type=text], input[type=date], input[type=email], input[type=password], select{
     width:100%;
     padding:10px 12px;
-    border:1px solid #c3b892;
-    border-radius:4px;
-    background:#fffdf7;
+    border:2px solid transparent;
+    border-radius:8px;
+    background:
+      linear-gradient(#fffdf7,#fffdf7) padding-box,
+      linear-gradient(135deg, var(--glow-a), var(--glow-b)) border-box;
     font-family:'Noto Sans Gujarati', sans-serif;
     font-size:14.5px;
     color:var(--ink);
-    transition:border-color .15s, box-shadow .15s;
-    box-shadow:0 0 5px rgba(169,124,52,0.28), 0 0 0 rgba(30,58,95,0);
+    transition:box-shadow .15s;
+    box-shadow:0 0 8px -1px var(--glow-shadow-a), 0 0 12px -2px var(--glow-shadow-b);
   }
   input:focus, select:focus{
     outline:none;
-    border-color:var(--navy);
-    box-shadow:0 0 0 3px rgba(30,58,95,0.15), 0 0 10px rgba(30,58,95,0.35);
+    box-shadow:0 0 0 3px var(--glow-shadow-b), 0 0 10px -1px var(--glow-shadow-a), 0 0 16px -2px var(--glow-shadow-b);
   }
 
   .date-pair{display:flex;align-items:center;gap:8px;}
@@ -308,8 +347,10 @@
   .addRowBtn{
     align-self:flex-start;
     margin-top:4px;
-    background:none;
-    border:1.5px dashed var(--navy);
+    border:2px solid transparent;
+    background:
+      linear-gradient(var(--card), var(--card)) padding-box,
+      linear-gradient(135deg, var(--glow-a), var(--glow-b)) border-box;
     color:var(--navy);
     padding:8px 16px;
     border-radius:5px;
@@ -317,8 +358,9 @@
     font-family:'Noto Sans Gujarati', sans-serif;
     font-weight:600;
     cursor:pointer;
+    box-shadow:0 0 8px -1px var(--glow-shadow-a), 0 0 12px -2px var(--glow-shadow-b);
   }
-  .addRowBtn:hover{background:rgba(30,58,95,0.06);}
+  .addRowBtn:hover{background:linear-gradient(rgba(30,58,95,0.06),rgba(30,58,95,0.06)) padding-box, linear-gradient(135deg, var(--glow-a), var(--glow-b)) border-box;}
 
   .actions{
     display:flex;
@@ -330,7 +372,10 @@
   button.submit{
     background:var(--navy-deep);
     color:#f3ede0;
-    border:none;
+    border:2px solid transparent;
+    background:
+      linear-gradient(var(--navy-deep), var(--navy-deep)) padding-box,
+      linear-gradient(135deg, var(--glow-a), var(--glow-b)) border-box;
     padding:12px 26px;
     border-radius:4px;
     font-size:15px;
@@ -339,8 +384,9 @@
     cursor:pointer;
     letter-spacing:.3px;
     transition:background .15s, transform .1s;
+    box-shadow:0 0 10px -1px var(--glow-shadow-a), 0 0 16px -2px var(--glow-shadow-b);
   }
-  button.submit:hover{background:var(--navy);}
+  button.submit:hover{background:linear-gradient(var(--navy), var(--navy)) padding-box, linear-gradient(135deg, var(--glow-a), var(--glow-b)) border-box;}
   button.submit:active{transform:translateY(1px);}
   button.submit:disabled{opacity:.55;cursor:not-allowed;}
 
@@ -505,7 +551,7 @@
     </div>
   </details>
 
-  <div class="card" id="userMgmtCard" style="display:none;">
+  <div class="card glow glow-gold-pink" id="userMgmtCard" style="display:none;">
     <h2>યુઝર મેનેજમેન્ટ</h2>
     <p class="card-help">નવા યુઝર આઇડી અહીંથી બનાવો — એ યુઝર પોતાના આઇડી-પાસવર્ડથી લોગિન કરી શકશે.</p>
     <div class="grid">
@@ -537,7 +583,7 @@
     </table>
   </div>
 
-  <div class="card">
+  <div class="card glow glow-teal-purple">
     <h2>નવી એન્ટ્રી ભરો</h2>
     <p class="card-help">પહેલા સામાન્ય માહિતી ભરો, પછી નીચે દરેક મોબાઇલ નંબર અને તેની કંપની અલગ-અલગ લખો.</p>
     <div class="grid">
@@ -577,7 +623,7 @@
     </div>
   </div>
 
-  <div class="card">
+  <div class="card glow glow-green-teal">
     <div class="log-head">
       <h2 id="logTitle">મારી એન્ટ્રીઓ</h2>
       <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
