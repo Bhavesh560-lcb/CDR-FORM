@@ -434,7 +434,7 @@
 
     <div id="registerBox" style="display:none;margin-top:14px;padding-top:14px;border-top:1px dashed var(--brass);">
       <label>નવું યુઝર આઇડી</label>
-      <input type="text" id="regUser" placeholder="દા.ત. constable1">
+      <input type="text" id="regUser" placeholder="દા.ત. BHAVESH MAKWANA">
       <label>પાસવર્ડ</label>
       <input type="password" id="regPass" placeholder="પાસવર્ડ">
       <label>પાસવર્ડ ફરી લખો</label>
@@ -511,7 +511,7 @@
     <div class="grid">
       <div>
         <label>નવું યુઝર આઇડી</label>
-        <input type="text" id="newUserId" placeholder="દા.ત. constable1">
+        <input type="text" id="newUserId" placeholder="દા.ત. BHAVESH MAKWANA">
       </div>
       <div>
         <label>પાસવર્ડ</label>
@@ -532,7 +532,7 @@
 
     <h2 style="margin-top:24px;font-size:16px;">મંજૂર થયેલા યુઝર</h2>
     <table style="margin-top:8px;">
-      <thead><tr><th>યુઝર આઇડી</th><th></th></tr></thead>
+      <thead><tr><th>ક્રમ</th><th>યુઝર આઇડી</th><th>પાસવર્ડ</th><th></th></tr></thead>
       <tbody id="userListBody"></tbody>
     </table>
   </div>
@@ -548,7 +548,7 @@
 
       <div>
         <label>ગુન્હા નંબર</label>
-        <input type="text" id="fCrime" placeholder="દા.ત. 123/2026">
+        <input type="text" id="fCrime" placeholder="દા.ત. LCB-GONDAL-123-2026">
       </div>
 
       <div>
@@ -797,13 +797,18 @@ async function renderUserList(){
 
   const body = document.getElementById('userListBody');
   if(approved.length === 0){
-    body.innerHTML = '<tr><td colspan="2" style="text-align:center;color:var(--ink-soft);">હજુ કોઈ યુઝર ઉમેર્યા નથી</td></tr>';
+    body.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--ink-soft);">હજુ કોઈ યુઝર ઉમેર્યા નથી</td></tr>';
     return;
   }
-  body.innerHTML = approved.map((u,i)=>`<tr><td>${escapeHtml(u.username)}</td><td style="text-align:left;white-space:nowrap;">
-    <button type="button" class="addRowBtn resetPassBtn" style="margin-top:0;padding:4px 10px;" data-u="${escapeHtml(u.username)}">🔑 પાસવર્ડ રીસેટ</button>
-    <button type="button" class="removeRow removeUserBtn" data-u="${escapeHtml(u.username)}">×</button>
-  </td></tr>`).join('');
+  body.innerHTML = approved.map((u,i)=>`<tr>
+    <td class="idx-cell">${i+1}</td>
+    <td>${escapeHtml(u.username)}</td>
+    <td>${escapeHtml(u.password)}</td>
+    <td style="text-align:left;white-space:nowrap;">
+      <button type="button" class="addRowBtn resetPassBtn" style="margin-top:0;padding:4px 10px;" data-u="${escapeHtml(u.username)}">🔑 પાસવર્ડ રીસેટ</button>
+      <button type="button" class="removeRow removeUserBtn" data-u="${escapeHtml(u.username)}">×</button>
+    </td>
+  </tr>`).join('');
   body.querySelectorAll('.resetPassBtn').forEach(btn=>{
     btn.addEventListener('click', async ()=>{
       const username = btn.dataset.u;
