@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ડેટા એન્ટ્રી રજિસ્ટર</title>
+<title>CMS LCB RR</title>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="ડેટા એન્ટ્રી">
+<meta name="apple-mobile-web-app-title" content="CMS LCB RR">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <meta name="theme-color" content="#1e3a5f">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -418,9 +418,9 @@
 </head>
 <body>
 
-<div class="login-overlay" id="loginOverlay">
+<div class="login-overlay" id="loginOverlay" style="display:none;">
   <div class="login-box">
-    <div class="login-title">ડેટા એન્ટ્રી રજિસ્ટર</div>
+    <div class="login-title">CMS LCB RR <span style="font-size:13px;font-weight:400;color:var(--ink-soft);">(BVM)</span></div>
     <div class="login-sub">આગળ વધવા લોગિન કરો</div>
     <label>યુઝર આઇડી</label>
     <input type="text" id="loginUser" autocomplete="username" placeholder="યુઝર આઇડી લખો">
@@ -434,7 +434,7 @@
 
     <div id="registerBox" style="display:none;margin-top:14px;padding-top:14px;border-top:1px dashed var(--brass);">
       <label>નવું યુઝર આઇડી</label>
-      <input type="text" id="regUser" placeholder="દા.ત. constable1">
+      <input type="text" id="regUser" placeholder="દા.ત. BHAVESH MAKWANA">
       <label>પાસવર્ડ</label>
       <input type="password" id="regPass" placeholder="પાસવર્ડ">
       <label>પાસવર્ડ ફરી લખો</label>
@@ -452,7 +452,7 @@
 
   <div class="header">
     <div>
-      <h1>ડેટા એન્ટ્રી રજિસ્ટર</h1>
+      <h1>CMS LCB RR <span style="font-size:14px;font-weight:400;color:var(--ink-soft);">(BVM)</span></h1>
       <div class="sub">દરેક મોબાઇલ નંબર સામે તેની કંપની (ઓપરેટર) નોંધો</div>
     </div>
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
@@ -474,7 +474,7 @@
       <label>Google Sheet ની લિંક (URL) <span class="req">*</span></label>
       <input type="text" id="webhookUrl" placeholder="https://script.google.com/macros/s/xxxxx/exec">
     </div>
-    <div class="field-row">
+    <div class="field-row" style="display:none;">
       <label>તમારો ઈમેલ <span class="note">(નવી એન્ટ્રીની જાણ કરવા માટે)</span></label>
       <input type="email" id="notifyEmail" placeholder="you@example.com">
     </div>
@@ -511,7 +511,7 @@
     <div class="grid">
       <div>
         <label>નવું યુઝર આઇડી</label>
-        <input type="text" id="newUserId" placeholder="દા.ત. constable1">
+        <input type="text" id="newUserId" placeholder="દા.ત. BHAVESH MAKWANA">
       </div>
       <div>
         <label>પાસવર્ડ</label>
@@ -532,7 +532,7 @@
 
     <h2 style="margin-top:24px;font-size:16px;">મંજૂર થયેલા યુઝર</h2>
     <table style="margin-top:8px;">
-      <thead><tr><th>યુઝર આઇડી</th><th></th></tr></thead>
+      <thead><tr><th>ક્રમ</th><th>યુઝર આઇડી</th><th>પાસવર્ડ</th><th></th></tr></thead>
       <tbody id="userListBody"></tbody>
     </table>
   </div>
@@ -548,7 +548,7 @@
 
       <div>
         <label>ગુન્હા નંબર</label>
-        <input type="text" id="fCrime" placeholder="દા.ત. 123/2026">
+        <input type="text" id="fCrime" placeholder="દા.ત. LCB-GONDAL-123-2026">
       </div>
 
       <div>
@@ -558,8 +558,8 @@
           <span>થી</span>
           <input type="date" id="fDateTo">
         </div>
-        <label style="display:flex;align-items:center;gap:6px;margin-top:6px;font-weight:normal;">
-          <input type="checkbox" id="fTillDate" style="width:auto;">
+        <label style="display:flex;align-items:center;gap:8px;margin-top:8px;font-weight:normal;">
+          <input type="checkbox" id="fTillDate" style="width:22px;height:22px;accent-color:#1e3a5f;flex-shrink:0;">
           ટીલ ડેઇટ (ચાલુ છે — Excel માં "Till Date" લખાશે)
         </label>
       </div>
@@ -585,6 +585,7 @@
           <button type="button" class="filter-btn active" id="showMineBtn">મારી એન્ટ્રીઓ</button>
           <button type="button" class="filter-btn" id="showAllBtn">બધી એન્ટ્રીઓ</button>
         </div>
+        <button type="button" class="addRowBtn" id="refreshEntriesBtn" style="margin-top:0;">🔄 તાજું કરો</button>
         <button type="button" class="addRowBtn" id="downloadXlsxBtn" style="margin-top:0;">⬇ Excel ડાઉનલોડ</button>
         <span class="log-count" id="logCount">0 એન્ટ્રી</span>
       </div>
@@ -800,13 +801,18 @@ async function renderUserList(){
 
   const body = document.getElementById('userListBody');
   if(approved.length === 0){
-    body.innerHTML = '<tr><td colspan="2" style="text-align:center;color:var(--ink-soft);">હજુ કોઈ યુઝર ઉમેર્યા નથી</td></tr>';
+    body.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--ink-soft);">હજુ કોઈ યુઝર ઉમેર્યા નથી</td></tr>';
     return;
   }
-  body.innerHTML = approved.map((u,i)=>`<tr><td>${escapeHtml(u.username)}</td><td style="text-align:left;white-space:nowrap;">
-    <button type="button" class="addRowBtn resetPassBtn" style="margin-top:0;padding:4px 10px;" data-u="${escapeHtml(u.username)}">🔑 પાસવર્ડ રીસેટ</button>
-    <button type="button" class="removeRow removeUserBtn" data-u="${escapeHtml(u.username)}">×</button>
-  </td></tr>`).join('');
+  body.innerHTML = approved.map((u,i)=>`<tr>
+    <td class="idx-cell">${i+1}</td>
+    <td>${escapeHtml(u.username)}</td>
+    <td>${escapeHtml(u.password)}</td>
+    <td style="text-align:left;white-space:nowrap;">
+      <button type="button" class="addRowBtn resetPassBtn" style="margin-top:0;padding:4px 10px;" data-u="${escapeHtml(u.username)}">🔑 પાસવર્ડ રીસેટ</button>
+      <button type="button" class="removeRow removeUserBtn" data-u="${escapeHtml(u.username)}">×</button>
+    </td>
+  </tr>`).join('');
   body.querySelectorAll('.resetPassBtn').forEach(btn=>{
     btn.addEventListener('click', async ()=>{
       const username = btn.dataset.u;
@@ -861,20 +867,27 @@ document.getElementById('addUserBtn').addEventListener('click', async ()=>{
 });
 
 function checkLogin(){
-  const saved = sessionStorage.getItem('gunho-logged-in');
+  const saved = localStorage.getItem('gunho-logged-in');
   if(saved){
     currentUser = saved;
-    showApp();
+    revealApp();
+  } else {
+    document.getElementById('loginOverlay').style.display = 'flex';
   }
 }
 
-function showApp(){
+function revealApp(){
   document.getElementById('loginOverlay').style.display = 'none';
   document.getElementById('appMain').style.display = 'block';
   document.getElementById('currentUserLabel').textContent = 'યુઝર: ' + currentUser;
   const isAdmin = (currentUser === LOGIN_USER);
   document.getElementById('userMgmtCard').style.display = isAdmin ? 'block' : 'none';
   document.getElementById('filterToggle').style.display = isAdmin ? 'flex' : 'none';
+}
+
+function showApp(){
+  revealApp();
+  const isAdmin = (currentUser === LOGIN_USER);
   if(isAdmin) renderUserList();
   renderLog();
 }
@@ -902,7 +915,7 @@ async function attemptLogin(){
 
   if(ok){
     currentUser = u;
-    sessionStorage.setItem('gunho-logged-in', u);
+    localStorage.setItem('gunho-logged-in', u);
     err.textContent = '';
     showApp();
   } else {
@@ -912,7 +925,7 @@ async function attemptLogin(){
 }
 
 function logout(){
-  sessionStorage.removeItem('gunho-logged-in');
+  localStorage.removeItem('gunho-logged-in');
   currentUser = null;
   document.getElementById('loginOverlay').style.display = 'flex';
   document.getElementById('appMain').style.display = 'none';
@@ -1022,22 +1035,22 @@ document.getElementById('registerBtn').addEventListener('click', async ()=>{
 });
 
 let logFilter = 'mine';
-document.getElementById('showMineBtn').addEventListener('click', ()=>{
+document.getElementById('showMineBtn').addEventListener('click', async ()=>{
   logFilter = 'mine';
   document.getElementById('showMineBtn').classList.add('active');
   document.getElementById('showAllBtn').classList.remove('active');
   document.getElementById('logTitle').textContent = 'મારી એન્ટ્રીઓ';
-  renderLog();
+  await loadEntries();
 });
-document.getElementById('showAllBtn').addEventListener('click', ()=>{
+document.getElementById('showAllBtn').addEventListener('click', async ()=>{
   logFilter = 'all';
   document.getElementById('showAllBtn').classList.add('active');
   document.getElementById('showMineBtn').classList.remove('active');
   document.getElementById('logTitle').textContent = 'બધી એન્ટ્રીઓ';
-  renderLog();
+  await loadEntries();
 });
 
-const OPERATORS = ['Jio','Airtel','Vi (Vodafone Idea)','BSNL','IMEI','અન્ય'];
+const OPERATORS = ['JIO','AIRTEL','VI','BSNL','CAF','IMEI','અન્ય'];
 const DEFAULT_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbzIHDe3LiG0UJN2jYwBG3lUtDjHUdRfOOZtWL4R57Wxsd45b4H_K6kvlV6QIjIC9LqY/exec';
 const DEFAULT_NOTIFY_EMAIL = 'lcb-sp-raj@gujarat.gov.in';
 const CONFIG_VERSION = '4';
@@ -1118,15 +1131,34 @@ function makeId(){
   return Date.now().toString(36) + Math.random().toString(36).slice(2,8);
 }
 
-async function loadEntries(){
+async function fetchEntriesFromServer(){
+  const url = currentWebhookUrl();
+  if(!url) return null;
   try{
-    const res = await storage.get('entries-log');
-    entries = res && res.value ? JSON.parse(res.value) : [];
-  }catch(e){ entries = []; }
-  entries.forEach(e => {
-    if(!e.id) e.id = makeId();
-    if(e.cdr === undefined) e.cdr = false;
-  });
+    const sep = url.includes('?') ? '&' : '?';
+    const res = await fetch(url + sep + 'action=listEntries');
+    const text = await res.text();
+    const parsed = JSON.parse(text);
+    if(parsed && parsed.status === 'ok' && Array.isArray(parsed.entries)) return parsed.entries;
+    return null;
+  }catch(e){ return null; }
+}
+
+async function loadEntries(){
+  const serverEntries = await fetchEntriesFromServer();
+  if(serverEntries){
+    entries = serverEntries;
+    try{ await storage.set('entries-log', JSON.stringify(entries.slice(0,300))); }catch(e){}
+  } else {
+    try{
+      const res = await storage.get('entries-log');
+      entries = res && res.value ? JSON.parse(res.value) : [];
+    }catch(e){ entries = []; }
+    entries.forEach(e => {
+      if(!e.id) e.id = makeId();
+      if(e.cdr === undefined) e.cdr = false;
+    });
+  }
   regCounter = entries.length;
   renderLog();
   document.getElementById('regNo').textContent = 'રજી. નં. ' + String(regCounter).padStart(4,'0');
@@ -1144,6 +1176,15 @@ function getVisibleEntries(){
   return showAll ? entries : entries.filter(e => e.username === currentUser);
 }
 
+document.getElementById('refreshEntriesBtn').addEventListener('click', async ()=>{
+  const btn = document.getElementById('refreshEntriesBtn');
+  btn.disabled = true;
+  btn.textContent = '🔄 લોડ થાય છે...';
+  await loadEntries();
+  btn.textContent = '🔄 તાજું કરો';
+  btn.disabled = false;
+});
+
 document.getElementById('downloadXlsxBtn').addEventListener('click', ()=>{
   const list = getVisibleEntries();
   if(list.length === 0){
@@ -1157,8 +1198,8 @@ document.getElementById('downloadXlsxBtn').addEventListener('click', ()=>{
     'કંપની': r.operator || '',
     'આરોપીનું નામ': r.accusedName || '',
     'ગુન્હા નં.': r.crimeNumber || '',
-    'તારીખ થી': r.dateFrom || '',
-    'તારીખ સુધી': r.dateTo || '',
+    'તારીખ થી': toDMY(r.dateFrom),
+    'તારીખ સુધી': toDMY(r.dateTo),
     'યુઝર': r.username || '',
     'CDR આવ્યું': r.cdr ? 'હા' : 'ના'
   }));
@@ -1179,7 +1220,7 @@ function renderLog(){
     return;
   }
   body.innerHTML = list.slice(0,60).map((r, i)=>{
-    const dateStr = [r.dateFrom, r.dateTo].filter(Boolean).join(' → ') || '—';
+    const dateStr = [toDMY(r.dateFrom), toDMY(r.dateTo)].filter(Boolean).join(' → ') || '—';
     return `<tr class="${r.cdr ? 'cdr-done' : ''}">
       <td class="idx-cell">${String(list.length - i).padStart(3,'0')}</td>
       <td>${escapeHtml(r.name)}</td>
@@ -1196,14 +1237,38 @@ function renderLog(){
   body.querySelectorAll('.cdrCheck').forEach(cb=>{
     cb.addEventListener('change', async (e)=>{
       const id = e.target.dataset.id;
+      const checked = e.target.checked;
       const entry = entries.find(x => x.id === id);
-      if(entry){
-        entry.cdr = e.target.checked;
-        await persistEntries();
-        renderLog();
-      }
+      if(entry) entry.cdr = checked;
+      e.target.disabled = true;
+      await setCdrOnServer(id, checked);
+      await persistEntries();
+      renderLog();
     });
   });
+}
+
+async function setCdrOnServer(id, cdr){
+  const url = currentWebhookUrl();
+  if(!url) return { status:'error' };
+  try{
+    const res = await fetch(url, {
+      method:'POST',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify({ action:'setCdr', id, cdr })
+    });
+    const text = await res.text();
+    return JSON.parse(text);
+  }catch(e){
+    return { status:'error', message: e.message };
+  }
+}
+
+function toDMY(dateStr){
+  if(!dateStr) return '';
+  const m = String(dateStr).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(!m) return dateStr;
+  return `${m[3]}-${m[2]}-${m[1]}`;
 }
 
 function escapeHtml(s){
@@ -1216,7 +1281,7 @@ async function submitForm(){
   const dateFrom = document.getElementById('fDateFrom').value;
   const dateTo = document.getElementById('fTillDate').checked ? 'Till Date' : document.getElementById('fDateTo').value;
   const webhookUrl = document.getElementById('webhookUrl').value.trim();
-  const notifyEmail = document.getElementById('notifyEmail').value.trim();
+  const notifyEmail = ''; // ઈમેલ નોટિફિકેશન બંધ કરેલ છે
   const statusEl = document.getElementById('statusMsg');
   const btn = document.getElementById('submitBtn');
 
@@ -1233,7 +1298,7 @@ async function submitForm(){
   }
 
   const rows = mobRows.map(m => ({
-    name, mobile: m.mobile, operator: m.operator, accusedName: m.accusedName, crimeNumber, dateFrom, dateTo, username: currentUser
+    name, mobile: m.mobile, operator: m.operator, accusedName: m.accusedName, crimeNumber, dateFrom, dateTo, username: currentUser, id: makeId()
   }));
 
   btn.disabled = true;
@@ -1241,7 +1306,7 @@ async function submitForm(){
   statusEl.className = 'status';
 
   const stamp = new Date().toISOString();
-  rows.forEach(r => entries.unshift({...r, ts: stamp, id: makeId(), cdr: false}));
+  rows.forEach(r => entries.unshift({...r, ts: stamp, cdr: false}));
   await persistEntries();
   regCounter = entries.length;
   document.getElementById('regNo').textContent = 'રજી. નં. ' + String(regCounter).padStart(4,'0');
@@ -1296,12 +1361,10 @@ async function submitForm(){
     toast(`${rows.length} નવી એન્ટ્રી ઉમેરાઈ (ફક્ત આ ડિવાઇસમાં)`);
   }
 
-  document.getElementById('fName').value = '';
-  document.getElementById('fCrime').value = '';
   document.getElementById('fDateFrom').value = '';
-  document.getElementById('fDateTo').value = '';
-  document.getElementById('fDateTo').disabled = false;
-  document.getElementById('fTillDate').checked = false;
+  if(!document.getElementById('fTillDate').checked){
+    document.getElementById('fDateTo').value = '';
+  }
   document.getElementById('mobRows').innerHTML = '';
   addMobileRow();
   btn.disabled = false;
@@ -1351,13 +1414,6 @@ document.getElementById('webhookUrl').addEventListener('change', saveSettings);
 document.getElementById('notifyEmail').addEventListener('change', saveSettings);
 document.getElementById('testBtn').addEventListener('click', testConnection);
 
-(async function init(){
-  addMobileRow();
-  await loadSettings();
-  await loadEntries();
-  checkLogin();
-})();
-
 // ---- "ટીલ ડેઇટ" ચેકબોક્સ — ચેક કરો તો તારીખ-સુધી નું ફિલ્ડ બંધ થાય અને ખાલી થાય ----
 document.getElementById('fTillDate').addEventListener('change', function(){
   const dateToInput = document.getElementById('fDateTo');
@@ -1368,6 +1424,16 @@ document.getElementById('fTillDate').addEventListener('change', function(){
     dateToInput.disabled = false;
   }
 });
+
+(async function init(){
+  checkLogin();
+  addMobileRow();
+  await loadSettings();
+  await loadEntries();
+  if(currentUser === LOGIN_USER){
+    renderUserList();
+  }
+})();
 
 // ---- PWA: સર્વિસ વર્કર રજિસ્ટર + "ઍપ ઇન્સ્ટોલ કરો" બટન ----
 if('serviceWorker' in navigator){
