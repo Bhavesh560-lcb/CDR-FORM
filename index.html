@@ -1247,7 +1247,7 @@ document.getElementById('downloadXlsxBtn').addEventListener('click', ()=>{
     'તારીખ થી': toDMY(r.dateFrom),
     'તારીખ સુધી': toDMY(r.dateTo),
     'યુઝર': r.username || '',
-    'CDR આવ્યું': r.cdr ? 'હા' : 'ના'
+    'CDR આવ્યું': r.cdr ? '☑' : '☐'
   }));
   const ws = XLSX.utils.json_to_sheet(rows);
   const wb = XLSX.utils.book_new();
