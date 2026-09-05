@@ -306,6 +306,62 @@
   .mob-block{
     grid-column:1 / -1;
   }
+  .bulkAddBtn{
+    margin-left:10px;
+    font-family:'Noto Sans Gujarati', sans-serif;
+    font-size:12px;
+    font-weight:600;
+    color:var(--navy);
+    border:2px solid transparent;
+    background:
+      linear-gradient(var(--card), var(--card)) padding-box,
+      linear-gradient(135deg, var(--glow-a), var(--glow-b)) border-box;
+    padding:3px 10px;
+    border-radius:12px;
+    cursor:pointer;
+    box-shadow:0 0 8px -1px var(--glow-shadow-a), 0 0 12px -2px var(--glow-shadow-b);
+  }
+  .bulk-panel{
+    margin:10px 0;
+    padding:14px;
+    border-radius:10px;
+    border:2px solid transparent;
+    background:
+      linear-gradient(var(--card), var(--card)) padding-box,
+      linear-gradient(135deg, var(--glow-a), var(--glow-b)) border-box;
+    box-shadow:0 0 12px -2px var(--glow-shadow-a), 0 0 18px -3px var(--glow-shadow-b);
+  }
+  .bulk-panel textarea{
+    width:100%;
+    min-height:120px;
+    padding:10px 12px;
+    border:2px solid transparent;
+    border-radius:8px;
+    background:
+      linear-gradient(#fffdf7,#fffdf7) padding-box,
+      linear-gradient(135deg, var(--glow-a), var(--glow-b)) border-box;
+    font-family:'Noto Sans Gujarati', sans-serif;
+    font-size:13.5px;
+    color:var(--ink);
+    resize:vertical;
+    box-shadow:0 0 8px -1px var(--glow-shadow-a), 0 0 12px -2px var(--glow-shadow-b);
+  }
+  .bulk-panel textarea:focus{
+    outline:none;
+    box-shadow:0 0 0 3px var(--glow-shadow-b), 0 0 10px -1px var(--glow-shadow-a), 0 0 16px -2px var(--glow-shadow-b);
+  }
+  .bulk-panel-actions{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-top:10px;
+  }
+  .bulk-panel-actions .submit{padding:8px 22px;font-size:13.5px;}
+  .bulk-count{
+    font-size:12.5px;
+    color:var(--ink-soft);
+    margin-right:auto;
+  }
   .mob-rows{
     display:flex;
     flex-direction:column;
@@ -611,7 +667,17 @@
       </div>
 
       <div class="full mob-block">
-        <label>મોબાઇલ નંબર / IMEI નંબર, કંપની અને આરોપીનું નામ <span class="req">*</span> <span class="note">— એક જ ખાનામાં 10 આંકડાનો મોબાઇલ નંબર અથવા 15 આંકડાનો IMEI નંબર લખો</span></label>
+        <label>મોબાઇલ નંબર / IMEI નંબર, કંપની અને આરોપીનું નામ <span class="req">*</span> <span class="note">— એક જ ખાનામાં 10 આંકડાનો મોબાઇલ નંબર અથવા 15 આંકડાનો IMEI નંબર લખો</span>
+          <button type="button" class="bulkAddBtn" id="bulkAddBtn">📋 ઘણા નંબર એકસાથે ઉમેરો</button>
+        </label>
+        <div class="bulk-panel" id="bulkPanel" style="display:none;">
+          <textarea id="bulkNumbers" rows="6" placeholder="એક લીટીમાં એક નંબર લખો —&#10;9787854595&#10;9787854594&#10;9787854593&#10;&#10;અથવા કોમા (,) થી અલગ કરીને એક લીટીમાં —&#10;9787854595,9787854594,9787854593&#10;&#10;(મહત્તમ 50 નંબર, મોબાઇલ નંબર કે IMEI નંબર બંને ચાલશે)"></textarea>
+          <div class="bulk-panel-actions">
+            <span class="bulk-count" id="bulkCount"></span>
+            <button type="button" class="filter-btn" id="bulkCancelBtn">રદ કરો</button>
+            <button type="button" class="submit" id="bulkOkBtn">ઓકે</button>
+          </div>
+        </div>
         <div class="mob-rows" id="mobRows"></div>
         <button type="button" class="addRowBtn" id="addRowBtn">+ બીજો નંબર ઉમેરો</button>
       </div>
@@ -1139,6 +1205,67 @@ function addMobileRow(){
 }
 
 document.getElementById('addRowBtn').addEventListener('click', addMobileRow);
+
+// ---- ઘણા નંબર એકસાથે ઉમેરો (બલ્ક પેનલ) ----
+const bulkAddBtn = document.getElementById('bulkAddBtn');
+const bulkPanel = document.getElementById('bulkPanel');
+const bulkNumbers = document.getElementById('bulkNumbers');
+const bulkCount = document.getElementById('bulkCount');
+const BULK_MAX = 50;
+
+function parseBulkNumbers(raw){
+  return raw.split(/[\n,]+/).map(s => s.trim()).filter(Boolean);
+}
+
+function updateBulkCount(){
+  const nums = parseBulkNumbers(bulkNumbers.value);
+  if(nums.length === 0){
+    bulkCount.textContent = '';
+  } else if(nums.length > BULK_MAX){
+    bulkCount.textContent = `${nums.length} નંબર લખાયા (મહત્તમ ${BULK_MAX} જ ઉમેરાશે)`;
+    bulkCount.style.color = 'var(--err)';
+  } else {
+    bulkCount.textContent = `${nums.length} નંબર લખાયા`;
+    bulkCount.style.color = 'var(--ink-soft)';
+  }
+}
+
+bulkAddBtn.addEventListener('click', () => {
+  const showing = bulkPanel.style.display !== 'none';
+  bulkPanel.style.display = showing ? 'none' : 'block';
+  if(!showing) bulkNumbers.focus();
+});
+
+bulkNumbers.addEventListener('input', updateBulkCount);
+
+document.getElementById('bulkCancelBtn').addEventListener('click', () => {
+  bulkNumbers.value = '';
+  bulkCount.textContent = '';
+  bulkPanel.style.display = 'none';
+});
+
+document.getElementById('bulkOkBtn').addEventListener('click', () => {
+  let nums = parseBulkNumbers(bulkNumbers.value);
+  if(nums.length === 0){
+    toast('કોઈ નંબર મળ્યો નહીં — ઓછામાં ઓછો એક નંબર લખો', true);
+    return;
+  }
+  let trimmedMsg = '';
+  if(nums.length > BULK_MAX){
+    trimmedMsg = ` (${nums.length} લખાયા હતા, ફક્ત પ્રથમ ${BULK_MAX} લેવાયા)`;
+    nums = nums.slice(0, BULK_MAX);
+  }
+  document.getElementById('mobRows').innerHTML = '';
+  nums.forEach(n => {
+    addMobileRow();
+    const allRows = document.querySelectorAll('.mob-row');
+    allRows[allRows.length - 1].querySelector('.mobInput').value = n;
+  });
+  bulkNumbers.value = '';
+  bulkCount.textContent = '';
+  bulkPanel.style.display = 'none';
+  toast(`${nums.length} નંબર ઉમેરાયા${trimmedMsg}`);
+});
 
 async function loadSettings(){
   document.getElementById('webhookUrl').value = DEFAULT_WEBHOOK_URL;
