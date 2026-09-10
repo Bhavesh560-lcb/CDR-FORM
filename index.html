@@ -1346,7 +1346,8 @@ async function persistEntries(){
 function getVisibleEntries(){
   const isAdmin = (currentUser === LOGIN_USER);
   const showAll = isAdmin && logFilter === 'all';
-  return showAll ? entries : entries.filter(e => e.username === currentUser);
+  const cu = (currentUser || '').trim().toUpperCase();
+  return showAll ? entries : entries.filter(e => (e.username || '').trim().toUpperCase() === cu);
 }
 
 document.getElementById('refreshEntriesBtn').addEventListener('click', async ()=>{
