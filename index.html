@@ -459,39 +459,7 @@
   .log-head h2{margin:0;}
   .log-count{font-size:12.5px;color:var(--ink-soft);}
 
-  .zoom-controls{
-    display:flex;align-items:center;gap:8px;
-    margin:10px 0 4px;
-    font-size:13px;
-    color:var(--ink-soft);
-  }
-  .zoom-label{font-size:12.5px;}
-  .zoom-btn{
-    width:30px;height:30px;
-    border-radius:6px;
-    border:1px solid var(--paper-line);
-    background:var(--card);
-    font-weight:700;
-    font-size:13px;
-    cursor:pointer;
-    color:var(--navy);
-  }
-  .zoom-btn:active{background:var(--paper-line);}
-  .zoom-pct{min-width:42px;text-align:center;font-weight:600;font-size:12.5px;}
-  .zoom-reset{
-    border:none;background:none;color:var(--navy);
-    text-decoration:underline;font-size:12.5px;cursor:pointer;padding:4px 6px;
-  }
-  .table-scroll{
-    overflow-x:auto;
-    -webkit-overflow-scrolling:touch;
-    margin:0 -26px;
-    padding:0 26px;
-  }
   table{width:100%;border-collapse:collapse;font-size:13.5px;}
-  #logTable{width:auto;min-width:100%;}
-  #logTable{font-size:var(--log-font-size, 13.5px);}
-  #logTable th, #logTable td{white-space:nowrap;}
   thead th{
     text-align:right;
     font-family:'Noto Serif Gujarati', serif;
@@ -738,33 +706,24 @@
         <span class="log-count" id="logCount">0 એન્ટ્રી</span>
       </div>
     </div>
-    <div class="zoom-controls">
-      <span class="zoom-label">ટેબલ સાઇઝ:</span>
-      <button type="button" class="zoom-btn" id="zoomOutBtn" aria-label="નાનું કરો">A−</button>
-      <span class="zoom-pct" id="zoomPct">100%</span>
-      <button type="button" class="zoom-btn" id="zoomInBtn" aria-label="મોટું કરો">A+</button>
-      <button type="button" class="zoom-reset" id="zoomResetBtn">રીસેટ</button>
-    </div>
-    <div class="table-scroll">
-      <table id="logTable">
-        <thead>
-          <tr>
-            <th>ક્રમ</th>
-            <th>નામ</th>
-            <th>મોબાઇલ / IMEI નંબર</th>
-            <th>કંપની</th>
-            <th>આરોપીનું નામ</th>
-            <th>ગુન્હા નં.</th>
-            <th>તારીખ</th>
-            <th>યુઝર</th>
-            <th style="text-align:center;">CDR</th>
-          </tr>
-        </thead>
-        <tbody id="logBody">
-          <tr class="empty-row"><td colspan="9">હજુ કોઈ એન્ટ્રી નથી</td></tr>
-        </tbody>
-      </table>
-    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>ક્રમ</th>
+          <th>નામ</th>
+          <th>મોબાઇલ / IMEI નંબર</th>
+          <th>કંપની</th>
+          <th>આરોપીનું નામ</th>
+          <th>ગુન્હા નં.</th>
+          <th>તારીખ</th>
+          <th>યુઝર</th>
+          <th style="text-align:center;">CDR</th>
+        </tr>
+      </thead>
+      <tbody id="logBody">
+        <tr class="empty-row"><td colspan="9">હજુ કોઈ એન્ટ્રી નથી</td></tr>
+      </tbody>
+    </table>
   </div>
 
   <div class="footnote">દરેક એન્ટ્રી આ ડિવાઇસમાં સેવ થાય છે, અને લિંક સેટ કરી હોય તો તમારી Google Sheetમાં પણ જાય છે.</div>
@@ -1417,39 +1376,6 @@ async function persistEntries(){
     await storage.set('entries-log', JSON.stringify(entries.slice(0,300)));
   }catch(e){}
 }
-
-// ---- ટેબલ ઝૂમ (નાનું/મોટું) — યુઝર પોતે એડજસ્ટ કરી શકે, સેટિંગ ડિવાઇસ પર સેવ રહે ----
-const ZOOM_MIN = 9, ZOOM_MAX = 18, ZOOM_DEFAULT = 13.5, ZOOM_STEP = 1;
-let logFontSize = ZOOM_DEFAULT;
-
-function applyLogFontSize(){
-  document.documentElement.style.setProperty('--log-font-size', logFontSize + 'px');
-  const pct = Math.round((logFontSize / ZOOM_DEFAULT) * 100);
-  const pctEl = document.getElementById('zoomPct');
-  if(pctEl) pctEl.textContent = pct + '%';
-  try{ localStorage.setItem('gunho:logFontSize', String(logFontSize)); }catch(e){}
-}
-
-(function initLogFontSize(){
-  try{
-    const saved = parseFloat(localStorage.getItem('gunho:logFontSize'));
-    if(!isNaN(saved) && saved >= ZOOM_MIN && saved <= ZOOM_MAX) logFontSize = saved;
-  }catch(e){}
-  applyLogFontSize();
-})();
-
-document.getElementById('zoomOutBtn').addEventListener('click', ()=>{
-  logFontSize = Math.max(ZOOM_MIN, logFontSize - ZOOM_STEP);
-  applyLogFontSize();
-});
-document.getElementById('zoomInBtn').addEventListener('click', ()=>{
-  logFontSize = Math.min(ZOOM_MAX, logFontSize + ZOOM_STEP);
-  applyLogFontSize();
-});
-document.getElementById('zoomResetBtn').addEventListener('click', ()=>{
-  logFontSize = ZOOM_DEFAULT;
-  applyLogFontSize();
-});
 
 function getVisibleEntries(){
   const isAdmin = (currentUser === LOGIN_USER);
