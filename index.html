@@ -760,12 +760,42 @@ function currentWebhookUrl(){
   return el ? el.value.trim() : '';
 }
 
+// ---- જોડાણ વારંવાર તૂટવાની સમસ્યા સામે: આપોઆપ ફરી-પ્રયત્ન (retry) ----
+// Google Apps Script ક્યારેક છાનેમાને નિષ્ફળ જાય/ધીમું પડે છે (કામચલાઉ ભૂલ).
+// એટલે દરેક fetch() ને બદલે આ ફંક્શન વાપરીએ છીએ, જે ભૂલ આવે તો યુઝરને
+// તરત ભૂલનો સંદેશ બતાવવાને બદલે 2-3 વાર છાનેમાને ફરી પ્રયત્ન કરે છે.
+function sleep_(ms){ return new Promise(r => setTimeout(r, ms)); }
+
+async function fetchWithRetry(url, options, retries){
+  if(retries === undefined) retries = 2; // કુલ 3 પ્રયત્ન (1 મૂળ + 2 ફરી-પ્રયત્ન)
+  let lastErr;
+  for(let attempt = 0; attempt <= retries; attempt++){
+    try{
+      const res = await fetch(url, options);
+      // HTTP સ્તરે સર્વર-ભૂલ (5xx) આવે તો પણ ફરી પ્રયત્ન કરવા લાયક ગણો
+      if(res && res.status >= 500 && attempt < retries){
+        lastErr = new Error('Server error ' + res.status);
+        await sleep_(500 * (attempt + 1));
+        continue;
+      }
+      return res;
+    }catch(e){
+      lastErr = e;
+      if(attempt < retries){
+        await sleep_(500 * (attempt + 1)); // 500ms, 1000ms ... વધતો વિલંબ
+        continue;
+      }
+    }
+  }
+  throw lastErr;
+}
+
 async function fetchUsersFromServer(){
   const url = currentWebhookUrl();
   if(!url) return null;
   try{
     const sep = url.includes('?') ? '&' : '?';
-    const res = await fetch(url + sep + 'action=listUsers');
+    const res = await fetchWithRetry(url + sep + 'action=listUsers');
     const text = await res.text();
     const parsed = JSON.parse(text);
     if(parsed && parsed.status === 'ok' && Array.isArray(parsed.users)) return parsed.users;
@@ -790,7 +820,7 @@ async function addUserOnServer(username, password){
   const url = currentWebhookUrl();
   if(!url) return { status:'error', message:'પહેલા ઉપર Google Sheet ની લિંક સેટ કરો.' };
   try{
-    const res = await fetch(url, {
+    const res = await fetchWithRetry(url, {
       method:'POST',
       headers:{'Content-Type':'text/plain;charset=utf-8'},
       body: JSON.stringify({ action:'addUser', username, password })
@@ -806,7 +836,7 @@ async function registerUserOnServer(username, password){
   const url = currentWebhookUrl();
   if(!url) return { status:'error', message:'સિસ્ટમમાં હાલ જોડાણ સેટ નથી. એડમિનનો સંપર્ક કરો.' };
   try{
-    const res = await fetch(url, {
+    const res = await fetchWithRetry(url, {
       method:'POST',
       headers:{'Content-Type':'text/plain;charset=utf-8'},
       body: JSON.stringify({ action:'registerUser', username, password })
@@ -822,7 +852,7 @@ async function approveUserOnServer(username){
   const url = currentWebhookUrl();
   if(!url) return { status:'error' };
   try{
-    const res = await fetch(url, {
+    const res = await fetchWithRetry(url, {
       method:'POST',
       headers:{'Content-Type':'text/plain;charset=utf-8'},
       body: JSON.stringify({ action:'approveUser', username })
@@ -838,7 +868,7 @@ async function deleteUserOnServer(username){
   const url = currentWebhookUrl();
   if(!url) return { status:'error' };
   try{
-    const res = await fetch(url, {
+    const res = await fetchWithRetry(url, {
       method:'POST',
       headers:{'Content-Type':'text/plain;charset=utf-8'},
       body: JSON.stringify({ action:'deleteUser', username })
@@ -854,7 +884,7 @@ async function changePasswordOnServer(username, currentPassword, newPassword){
   const url = currentWebhookUrl();
   if(!url) return { status:'error', message:'સિસ્ટમમાં હાલ જોડાણ સેટ નથી.' };
   try{
-    const res = await fetch(url, {
+    const res = await fetchWithRetry(url, {
       method:'POST',
       headers:{'Content-Type':'text/plain;charset=utf-8'},
       body: JSON.stringify({ action:'changePassword', username, currentPassword, newPassword })
@@ -870,7 +900,7 @@ async function resetPasswordOnServer(username, newPassword){
   const url = currentWebhookUrl();
   if(!url) return { status:'error' };
   try{
-    const res = await fetch(url, {
+    const res = await fetchWithRetry(url, {
       method:'POST',
       headers:{'Content-Type':'text/plain;charset=utf-8'},
       body: JSON.stringify({ action:'resetPassword', username, newPassword })
@@ -1165,7 +1195,7 @@ document.getElementById('showAllBtn').addEventListener('click', async ()=>{
 const OPERATORS = ['JIO','AIRTEL','VI','BSNL','CAF','IMEI','અન્ય'];
 const DEFAULT_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbygUmJ7EKOoJLz3r2n9HyNhrziJQraqAp0_hg68MqxZFAQSTf3amba7wx0nGum8gC2a/exec';
 const DEFAULT_NOTIFY_EMAIL = 'lcb-sp-raj@gujarat.gov.in';
-const CONFIG_VERSION = '5';
+const CONFIG_VERSION = '6';
 let entries = [];
 let regCounter = 0;
 let rowSeq = 0;
@@ -1309,7 +1339,7 @@ async function fetchEntriesFromServer(){
   if(!url) return null;
   try{
     const sep = url.includes('?') ? '&' : '?';
-    const res = await fetch(url + sep + 'action=listEntries');
+    const res = await fetchWithRetry(url + sep + 'action=listEntries');
     const text = await res.text();
     const parsed = JSON.parse(text);
     if(parsed && parsed.status === 'ok' && Array.isArray(parsed.entries)) return parsed.entries;
@@ -1426,7 +1456,7 @@ async function setCdrOnServer(id, cdr){
   const url = currentWebhookUrl();
   if(!url) return { status:'error' };
   try{
-    const res = await fetch(url, {
+    const res = await fetchWithRetry(url, {
       method:'POST',
       headers:{'Content-Type':'text/plain;charset=utf-8'},
       body: JSON.stringify({ action:'setCdr', id, cdr })
@@ -1491,7 +1521,7 @@ async function submitForm(){
     let confirmed = false;
     let serverError = null;
     try{
-      const res = await fetch(webhookUrl, {
+      const res = await fetchWithRetry(webhookUrl, {
         method: 'POST',
         headers: {'Content-Type':'text/plain;charset=utf-8'},
         body: JSON.stringify({ rows, notifyEmail })
@@ -1507,7 +1537,7 @@ async function submitForm(){
     }catch(err){
       // CORS/network block — fall back to a blind send so data still has a chance to reach the sheet
       try{
-        await fetch(webhookUrl, {
+        await fetchWithRetry(webhookUrl, {
           method: 'POST',
           mode: 'no-cors',
           headers: {'Content-Type':'text/plain;charset=utf-8'},
@@ -1564,7 +1594,7 @@ async function testConnection(){
   testStatus.className = 'status';
 
   try{
-    const res = await fetch(url, { method: 'GET' });
+    const res = await fetchWithRetry(url, { method: 'GET' });
     const text = await res.text();
     testResult.style.display = 'block';
     testResult.textContent = 'જવાબ મળ્યો: ' + text;
