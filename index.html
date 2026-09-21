@@ -459,6 +459,79 @@
   .log-head h2{margin:0;}
   .log-count{font-size:12.5px;color:var(--ink-soft);}
 
+  /* ---- એન્ટ્રી કાર્ડ લિસ્ટ (મોબાઇલ પર ટેબલને બદલે, કંઈ પણ બહાર ન નીકળે એવું) ---- */
+  .entry-list{display:flex;flex-direction:column;gap:12px;margin-top:6px;}
+  .entry-card{
+    border:1px solid var(--paper-line);
+    border-radius:12px;
+    padding:14px 16px 12px;
+    background:var(--card);
+    transition:background .2s, border-color .2s;
+  }
+  .entry-card.cdr-done{
+    background:#e9f7e7;
+    border-color:#8fcf8a;
+  }
+  .entry-card-top{
+    display:flex;justify-content:space-between;align-items:flex-start;gap:10px;
+    margin-bottom:6px;
+  }
+  .entry-idx{
+    display:inline-flex;align-items:center;justify-content:center;
+    min-width:30px;height:22px;padding:0 7px;
+    border-radius:20px;
+    background:rgba(169,124,52,0.14);
+    color:var(--brass);
+    font-weight:700;font-size:12px;
+    font-family:'Noto Serif Gujarati', serif;
+    flex-shrink:0;
+  }
+  .entry-name-wrap{flex:1;min-width:0;}
+  .entry-name{
+    font-size:16px;font-weight:700;color:var(--navy-deep);
+    line-height:1.3;word-break:break-word;
+  }
+  .entry-card.cdr-done .entry-name{color:#b00000;}
+  .entry-mobile{
+    font-size:14px;font-weight:600;color:var(--ink);
+    margin-top:1px;letter-spacing:.3px;
+  }
+  .entry-card.cdr-done .entry-mobile{color:#b00000;}
+  .entry-cdr-toggle{
+    display:flex;flex-direction:column;align-items:center;gap:2px;
+    flex-shrink:0;
+  }
+  .entry-cdr-toggle input{width:24px;height:24px;accent-color:#1e3a5f;cursor:pointer;}
+  .entry-cdr-toggle span{font-size:10px;color:var(--ink-soft);font-weight:600;}
+  .op-tag{
+    display:inline-block;
+    font-size:11.5px;
+    font-weight:600;
+    padding:2px 8px;
+    border-radius:10px;
+    background:rgba(30,58,95,0.08);
+    color:var(--navy-deep);
+    margin-top:6px;
+  }
+  .entry-grid{
+    display:grid;grid-template-columns:1fr 1fr;gap:8px 14px;
+    margin-top:10px;padding-top:10px;
+    border-top:1px dashed var(--paper-line);
+  }
+  .entry-field.full{grid-column:1 / -1;}
+  .entry-label{
+    font-size:10.5px;color:var(--ink-soft);
+    text-transform:uppercase;letter-spacing:.4px;
+  }
+  .entry-value{
+    font-size:13.5px;color:var(--ink);font-weight:500;
+    word-break:break-word;
+  }
+  .entry-card.cdr-done .entry-value{color:#b00000;}
+  .entry-empty{
+    text-align:center;color:var(--ink-soft);
+    padding:26px 8px;font-size:14px;
+  }
   table{width:100%;border-collapse:collapse;font-size:13.5px;}
   thead th{
     text-align:right;
@@ -475,16 +548,6 @@
     vertical-align:top;
   }
   tbody tr:hover{background:rgba(169,124,52,0.05);}
-  .idx-cell{color:var(--brass);font-weight:700;font-family:'Noto Serif Gujarati', serif;}
-  .op-tag{
-    display:inline-block;
-    font-size:11.5px;
-    font-weight:600;
-    padding:2px 8px;
-    border-radius:10px;
-    background:rgba(30,58,95,0.08);
-    color:var(--navy-deep);
-  }
   .empty-row td{
     text-align:center;
     color:var(--ink-soft);
@@ -706,24 +769,9 @@
         <span class="log-count" id="logCount">0 એન્ટ્રી</span>
       </div>
     </div>
-    <table>
-      <thead>
-        <tr>
-          <th>ક્રમ</th>
-          <th>નામ</th>
-          <th>મોબાઇલ / IMEI નંબર</th>
-          <th>કંપની</th>
-          <th>આરોપીનું નામ</th>
-          <th>ગુન્હા નં.</th>
-          <th>તારીખ</th>
-          <th>યુઝર</th>
-          <th style="text-align:center;">CDR</th>
-        </tr>
-      </thead>
-      <tbody id="logBody">
-        <tr class="empty-row"><td colspan="9">હજુ કોઈ એન્ટ્રી નથી</td></tr>
-      </tbody>
-    </table>
+    <div class="entry-list" id="logBody">
+      <div class="entry-empty">હજુ કોઈ એન્ટ્રી નથી</div>
+    </div>
   </div>
 
   <div class="footnote">દરેક એન્ટ્રી આ ડિવાઇસમાં સેવ થાય છે, અને લિંક સેટ કરી હોય તો તમારી Google Sheetમાં પણ જાય છે.</div>
@@ -1424,22 +1472,44 @@ function renderLog(){
 
   document.getElementById('logCount').textContent = list.length + ' એન્ટ્રી';
   if(list.length === 0){
-    body.innerHTML = '<tr class="empty-row"><td colspan="9">હજુ કોઈ એન્ટ્રી નથી</td></tr>';
+    body.innerHTML = '<div class="entry-empty">હજુ કોઈ એન્ટ્રી નથી</div>';
     return;
   }
   body.innerHTML = list.map((r, i)=>{
     const dateStr = [toDMY(r.dateFrom), toDMY(r.dateTo)].filter(Boolean).join(' → ') || '—';
-    return `<tr class="${r.cdr ? 'cdr-done' : ''}">
-      <td class="idx-cell">${String(list.length - i).padStart(3,'0')}</td>
-      <td>${escapeHtml(r.name)}</td>
-      <td>${escapeHtml(r.mobile)}</td>
-      <td><span class="op-tag">${escapeHtml(r.operator || '—')}</span></td>
-      <td>${escapeHtml(r.accusedName || '—')}</td>
-      <td>${escapeHtml(r.crimeNumber || '—')}</td>
-      <td>${escapeHtml(dateStr)}</td>
-      <td>${escapeHtml(r.username || '—')}</td>
-      <td style="text-align:center;"><input type="checkbox" class="cdrCheck" data-id="${r.id}" ${r.cdr ? 'checked' : ''}></td>
-    </tr>`;
+    const idx = String(list.length - i).padStart(3,'0');
+    return `<div class="entry-card ${r.cdr ? 'cdr-done' : ''}">
+      <div class="entry-card-top">
+        <span class="entry-idx">#${idx}</span>
+        <div class="entry-name-wrap">
+          <div class="entry-name">${escapeHtml(r.name)}</div>
+          <div class="entry-mobile">📱 ${escapeHtml(r.mobile)}</div>
+          <span class="op-tag">${escapeHtml(r.operator || '—')}</span>
+        </div>
+        <label class="entry-cdr-toggle">
+          <input type="checkbox" class="cdrCheck" data-id="${r.id}" ${r.cdr ? 'checked' : ''}>
+          <span>CDR</span>
+        </label>
+      </div>
+      <div class="entry-grid">
+        <div class="entry-field">
+          <div class="entry-label">આરોપીનું નામ</div>
+          <div class="entry-value">${escapeHtml(r.accusedName || '—')}</div>
+        </div>
+        <div class="entry-field">
+          <div class="entry-label">ગુન્હા નં.</div>
+          <div class="entry-value">${escapeHtml(r.crimeNumber || '—')}</div>
+        </div>
+        <div class="entry-field full">
+          <div class="entry-label">તારીખ</div>
+          <div class="entry-value">${escapeHtml(dateStr)}</div>
+        </div>
+        <div class="entry-field">
+          <div class="entry-label">યુઝર</div>
+          <div class="entry-value">${escapeHtml(r.username || '—')}</div>
+        </div>
+      </div>
+    </div>`;
   }).join('');
 
   body.querySelectorAll('.cdrCheck').forEach(cb=>{
