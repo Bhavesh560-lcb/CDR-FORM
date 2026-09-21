@@ -4,14 +4,15 @@
 // નોંધ: Google Sheet સાથેની actual entries/login સિંક માટે ઈન્ટરનેટ જરૂરી જ રહેશે —
 // આ ફક્ત એપનું "શેલ" (HTML/CSS/JS/આઇકોન) ઑફલાઇન લોડ થાય એ સુનિશ્ચિત કરે છે.
 
-const CACHE_NAME = 'gunho-data-entry-v5';
+const CACHE_NAME = 'gunho-data-entry-v6';
 const APP_SHELL = [
   './',
   './index.html',
   './manifest.json',
   './icon-192.png',
   './icon-512.png',
-  './icon-512-maskable.png'
+  './icon-512-maskable.png',
+  './logo-header.png'
 ];
 
 self.addEventListener('install', (event) => {
