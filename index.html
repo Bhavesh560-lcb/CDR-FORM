@@ -1682,7 +1682,6 @@ function renderLog(){
   }
   const isAdmin = (currentUser === LOGIN_USER);
   const cu = (currentUser || '').trim().toUpperCase();
-  const webhookUrl = currentWebhookUrl();
 
   body.innerHTML = list.map((r, i)=>{
     const dFrom = toDMY(r.dateFrom) || '—';
@@ -1691,12 +1690,6 @@ function renderLog(){
     const isOwner = (r.username || '').trim().toUpperCase() === cu;
     const hasFile = !!r.cdrFileUrl;
     const showBell = hasFile && r.cdrSeen === false && isOwner;
-    // ડાઉનલોડ લિંક ફાઇલની સીધી Google Drive લિંકને બદલે Apps Script મારફતે
-    // (script.google.com પરથી) જાય છે — નહીં તો ફોનમાં Google Drive એપ
-    // વચ્ચે આવી જાય છે અને ફાઇલ ડાઉનલોડ થવાને બદલે ફક્ત ખૂલી જાય છે.
-    const downloadUrl = webhookUrl
-      ? (webhookUrl + (webhookUrl.includes('?') ? '&' : '?') + 'action=downloadCdrFile&id=' + encodeURIComponent(r.id))
-      : r.cdrFileUrl;
 
     let fileRow = '';
     if(isAdmin){
@@ -1710,9 +1703,9 @@ function renderLog(){
           </div>`;
     } else if(hasFile && isOwner){
       fileRow = `<div class="entry-cdr-file-row">
-        <a class="cdr-file-btn download" href="${escapeHtml(downloadUrl)}" download="${escapeHtml(r.cdrFileName || 'CDR_FILE')}" target="_blank" rel="noopener" data-id="${r.id}" data-seen="${r.cdrSeen ? '1' : '0'}">
+        <button type="button" class="cdr-file-btn download cdrDownloadBtn" data-id="${r.id}" data-seen="${r.cdrSeen ? '1' : '0'}">
           ⬇ CDR ડાઉનલોડ
-        </a>
+        </button>
         ${showBell ? '<span class="cdr-bell" title="નવી CDR ફાઇલ આવી છે">🔔</span>' : ''}
       </div>`;
     }
@@ -1763,17 +1756,52 @@ function renderLog(){
     });
   });
 
-  body.querySelectorAll('.cdr-file-btn.download').forEach(a=>{
-    a.addEventListener('click', (e)=>{
-      const id = e.currentTarget.dataset.id;
-      const seen = e.currentTarget.dataset.seen === '1';
-      if(!seen){
-        const entry = entries.find(x => x.id === id);
-        if(entry) entry.cdrSeen = true;
-        markCdrSeenOnServer(id);
-        persistEntries();
-        renderLog();
+  body.querySelectorAll('.cdrDownloadBtn').forEach(btn=>{
+    btn.addEventListener('click', async (e)=>{
+      const b = e.currentTarget;
+      const id = b.dataset.id;
+      const seen = b.dataset.seen === '1';
+      const url = currentWebhookUrl();
+      if(!url){ alert('પહેલા Webhook URL સેટ કરો.'); return; }
+      const origText = b.textContent;
+      b.disabled = true;
+      b.textContent = '⏳ ડાઉનલોડ થાય છે...';
+      try{
+        const sep = url.includes('?') ? '&' : '?';
+        const res = await fetchWithRetry(url + sep + 'action=downloadCdrFile&id=' + encodeURIComponent(id));
+        const text = await res.text();
+        const result = JSON.parse(text);
+        if(result && result.status === 'ok' && result.base64){
+          const byteChars = atob(result.base64);
+          const byteNumbers = new Array(byteChars.length);
+          for(let i = 0; i < byteChars.length; i++) byteNumbers[i] = byteChars.charCodeAt(i);
+          const byteArray = new Uint8Array(byteNumbers);
+          const blob = new Blob([byteArray], { type: result.mimeType || 'application/octet-stream' });
+          const blobUrl = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = blobUrl;
+          a.download = result.fileName || 'CDR_FILE';
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          setTimeout(()=>URL.revokeObjectURL(blobUrl), 10000);
+
+          if(!seen){
+            const entry = entries.find(x => x.id === id);
+            if(entry) entry.cdrSeen = true;
+            markCdrSeenOnServer(id);
+            await persistEntries();
+            renderLog();
+            return; // renderLog() એ આખું fileRow ફરી બનાવ્યું, જૂનું બટન હવે નથી
+          }
+        } else {
+          alert('ડાઉનલોડ કરવામાં ભૂલ: ' + ((result && result.message) || 'અજાણી ભૂલ'));
+        }
+      }catch(err){
+        alert('ડાઉનલોડ કરવામાં ભૂલ: ' + err.message);
       }
+      b.textContent = origText;
+      b.disabled = false;
     });
   });
 }
