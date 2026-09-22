@@ -11,6 +11,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="CMS LCB RR">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"></script>
 <meta name="theme-color" content="#1e3a5f">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Gujarati:wght@500;700&family=Noto+Sans+Gujarati:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -933,6 +935,62 @@ const LOGIN_USER = 'admin';
 const LOGIN_PASS = 'lcbraj@2026';
 let currentUser = null;
 
+// ============================================================
+// પુશ નોટિફિકેશન (Firebase) — એપ બંધ હોય તો પણ "નવી CDR ફાઇલ આવી છે"
+// નોટિફિકેશન ફોન પર બતાવવા માટે. sw.js માં પણ આ જ firebaseConfig અને
+// VAPID_PUBLIC_KEY ભરવાના રહેશે.
+// ⚠ ભરવું જરૂરી — Firebase Console → Project settings → General →
+// "Your apps" → Web app → SDK setup and configuration.
+// ============================================================
+const firebaseConfig = {
+  apiKey: 'AIzaSyCXPm-JKDlLnzS1k0C57BGMXVBLDfx86NE',
+  authDomain: 'cms-lcb-rr.firebaseapp.com',
+  projectId: 'cms-lcb-rr',
+  storageBucket: 'cms-lcb-rr.firebasestorage.app',
+  messagingSenderId: '493087201778',
+  appId: '1:493087201778:web:f3c5f88cd2ce7fd0cb736b'
+};
+// Firebase Console → Project settings → Cloud Messaging → Web Push
+// certificates → "Generate key pair" — ત્યાંથી મળતી "Key pair" કૉપી કરો.
+const VAPID_PUBLIC_KEY = 'BHoTV-RkAgVglCckaxcGNN1YMemgEJcWvapi4_6rVIwQaY-rYWZVGcFhVI0AsemqzYXb9ZmbtGKQ8lJ_hXUpG60';
+
+let pushSetupDone = false;
+
+async function setupPushNotifications(){
+  if(pushSetupDone) return; // એક સેશનમાં એક જ વાર પ્રયત્ન કરો
+  pushSetupDone = true;
+  try{
+    if(firebaseConfig.apiKey === 'FIREBASE_API_KEY') return; // હજુ સેટઅપ થયું નથી
+    if(!('serviceWorker' in navigator) || !('Notification' in window)) return;
+    if(!currentUser) return;
+
+    if(Notification.permission === 'default'){
+      await Notification.requestPermission();
+    }
+    if(Notification.permission !== 'granted') return;
+
+    if(!firebase.apps || !firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    const registration = await navigator.serviceWorker.ready;
+    const messaging = firebase.messaging();
+    const token = await messaging.getToken({
+      vapidKey: VAPID_PUBLIC_KEY,
+      serviceWorkerRegistration: registration
+    });
+    if(!token) return;
+
+    const url = currentWebhookUrl();
+    if(!url) return;
+    await fetchWithRetry(url, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'saveDeviceToken', username: currentUser, token: token })
+    });
+  }catch(err){
+    // પુશ સેટઅપ નિષ્ફળ જાય તો પણ એપ સામાન્ય રીતે કામ કરતી રહે —
+    // ફક્ત ઍપ બંધ હોય ત્યારેનું નોટિફિકેશન નહીં મળે.
+    console.warn('Push setup failed:', err);
+  }
+}
+
 // ---- ડેટા સેવ કરવાની વ્યવસ્થા ----
 // આ ફાઇલ Claude.ai ની બહાર, સામાન્ય વેબપેજ તરીકે ચાલે છે, એટલે "window.storage"
 // (જે ફક્ત Claude.ai ના artifact ની અંદર જ કામ કરે છે) અહીં ઉપલબ્ધ નથી.
@@ -1261,6 +1319,7 @@ function revealApp(){
   document.getElementById('filterToggle').style.display = isAdmin ? 'flex' : 'none';
   document.getElementById('openCdrFolderBtn').style.display = isAdmin ? 'inline-block' : 'none';
   document.getElementById('syncCdrFolderBtn').style.display = isAdmin ? 'inline-block' : 'none';
+  setupPushNotifications();
 }
 
 function showApp(){
