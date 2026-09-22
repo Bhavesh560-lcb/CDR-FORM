@@ -2070,10 +2070,46 @@ document.getElementById('fTillDate').addEventListener('change', function(){
   await Promise.all(tasks);
 })();
 
-// ---- PWA: સર્વિસ વર્કર રજિસ્ટર + "ઍપ ઇન્સ્ટોલ કરો" બટન ----
+// ---- PWA: સર્વિસ વર્કર રજિસ્ટર + ઓટો-અપડેટ ----
+// એપ ખૂલે એટલે તરત નવું વર્ઝન છે કે નહીં ચેક થાય છે. નવું વર્ઝન મળે તો
+// યુઝરને ટોસ્ટ-મેસેજથી જણાવાય છે, નવું વર્ઝન આપોઆપ ઇન્સ્ટોલ થાય છે,
+// અને પછી પેજ પોતાની જાતે રિલોડ થાય છે — જૂનું કેશ પણ sw.js ના
+// activate() માં આપોઆપ ડિલીટ થઈ જાય છે. યુઝરે કંઈ કરવાની જરૂર નથી.
+let swUpdateReloading = false;
 if('serviceWorker' in navigator){
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').catch(()=>{});
+    navigator.serviceWorker.register('sw.js').then((reg) => {
+      // પેજ ખૂલે એટલે તરત ચેક કરો
+      reg.update().catch(()=>{});
+
+      function watchNewWorker(worker){
+        if(!worker) return;
+        worker.addEventListener('statechange', () => {
+          if(worker.state === 'installed' && navigator.serviceWorker.controller){
+            // નવું વર્ઝન ડાઉનલોડ/ઇન્સ્ટોલ થઈ ગયું — યુઝરને જણાવો
+            toast('નવું અપડેટ મળ્યું — એપ આપોઆપ અપડેટ થાય છે...');
+          }
+        });
+      }
+
+      if(reg.waiting){
+        toast('નવું અપડેટ મળ્યું — એપ આપોઆપ અપડેટ થાય છે...');
+      }
+      watchNewWorker(reg.installing);
+      reg.addEventListener('updatefound', () => watchNewWorker(reg.installing));
+
+      // એપ ફરી ફોરગ્રાઉન્ડમાં આવે ત્યારે પણ ચેક કરો (દા.ત. બેકગ્રાઉન્ડમાંથી પાછા આવે ત્યારે)
+      document.addEventListener('visibilitychange', () => {
+        if(document.visibilityState === 'visible') reg.update().catch(()=>{});
+      });
+    }).catch(()=>{});
+
+    // નવું સર્વિસ વર્કર control લે એટલે પેજ આપોઆપ રિલોડ થાય — તાજું વર્ઝન દેખાય
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if(swUpdateReloading) return;
+      swUpdateReloading = true;
+      window.location.reload();
+    });
   });
 }
 
