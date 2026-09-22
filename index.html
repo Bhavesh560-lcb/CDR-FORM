@@ -1765,37 +1765,76 @@ function renderLog(){
       if(!url){ alert('પહેલા Webhook URL સેટ કરો.'); return; }
       const origText = b.textContent;
       b.disabled = true;
-      b.textContent = '⏳ ડાઉનલોડ થાય છે...';
+      b.textContent = '⏳ તૈયાર થાય છે...';
+
+      // સર્વર જવાબ JSON છે કે નહીં એ ચકાસીને — HTML/ટાઇમઆઉટ પેજ આવે તો
+      // "Unexpected token '<'" જેવી ક્રેશને બદલે સ્પષ્ટ ભૂલ-સંદેશ આપે છે.
+      async function fetchJson_(fetchUrl){
+        const res = await fetchWithRetry(fetchUrl);
+        const text = await res.text();
+        try{
+          return JSON.parse(text);
+        }catch(parseErr){
+          throw new Error('સર્વર તરફથી અયોગ્ય જવાબ મળ્યો (કદાચ સમય પૂરો થયો) — ફરી પ્રયત્ન કરો.');
+        }
+      }
+
       try{
         const sep = url.includes('?') ? '&' : '?';
-        const res = await fetchWithRetry(url + sep + 'action=downloadCdrFile&id=' + encodeURIComponent(id));
-        const text = await res.text();
-        const result = JSON.parse(text);
-        if(result && result.status === 'ok' && result.base64){
-          const byteChars = atob(result.base64);
-          const byteNumbers = new Array(byteChars.length);
-          for(let i = 0; i < byteChars.length; i++) byteNumbers[i] = byteChars.charCodeAt(i);
-          const byteArray = new Uint8Array(byteNumbers);
-          const blob = new Blob([byteArray], { type: result.mimeType || 'application/octet-stream' });
-          const blobUrl = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = blobUrl;
-          a.download = result.fileName || 'CDR_FILE';
-          document.body.appendChild(a);
-          a.click();
-          a.remove();
-          setTimeout(()=>URL.revokeObjectURL(blobUrl), 10000);
 
-          if(!seen){
-            const entry = entries.find(x => x.id === id);
-            if(entry) entry.cdrSeen = true;
-            markCdrSeenOnServer(id);
-            await persistEntries();
-            renderLog();
-            return; // renderLog() એ આખું fileRow ફરી બનાવ્યું, જૂનું બટન હવે નથી
+        // 1) મેટા-માહિતી મગાવો — ફાઇલ સર્વર પર એક જ વાર વંચાઈને નાના-નાના
+        //    ટુકડામાં તૈયાર થઈ જાય છે; આ જવાબ ફક્ત નામ/ટોકન/કુલ ટુકડા જ
+        //    લઈને આવે છે એટલે નાનો ને ઝડપી છે.
+        const meta = await fetchJson_(url + sep + 'action=downloadCdrFileMeta&id=' + encodeURIComponent(id));
+        if(!meta || meta.status !== 'ok' || !meta.token){
+          throw new Error((meta && meta.message) || 'ફાઇલ તૈયાર કરવામાં ભૂલ.');
+        }
+
+        // 2) દરેક ટુકડો વારાફરતી મગાવો, ટકાવારી બતાવતા જાઓ. કોઈ એક ટુકડો
+        //    નિષ્ફળ જાય તો આખી ફાઇલ ફરી શરૂ કરવાને બદલે ફક્ત એ ટુકડો
+        //    2 વાર ફરી પ્રયત્ન કરાય છે.
+        const totalChunks = meta.totalChunks || 1;
+        let base64 = '';
+        for(let c = 0; c < totalChunks; c++){
+          const pct = Math.round((c / totalChunks) * 100);
+          b.textContent = `⏳ ડાઉનલોડ થાય છે... ${pct}%`;
+          let chunkResult = null;
+          let chunkErr = null;
+          for(let attempt = 0; attempt < 2; attempt++){
+            try{
+              chunkResult = await fetchJson_(url + sep + 'action=downloadCdrFileChunk&token=' + encodeURIComponent(meta.token) + '&chunk=' + c);
+              if(chunkResult && chunkResult.status === 'ok'){ chunkErr = null; break; }
+              chunkErr = new Error((chunkResult && chunkResult.message) || 'ટુકડો મળ્યો નહીં.');
+            }catch(err){
+              chunkErr = err;
+            }
           }
-        } else {
-          alert('ડાઉનલોડ કરવામાં ભૂલ: ' + ((result && result.message) || 'અજાણી ભૂલ'));
+          if(chunkErr) throw chunkErr;
+          base64 += chunkResult.data;
+        }
+        b.textContent = '⏳ ફાઇલ સેવ થાય છે...';
+
+        const byteChars = atob(base64);
+        const byteNumbers = new Array(byteChars.length);
+        for(let i = 0; i < byteChars.length; i++) byteNumbers[i] = byteChars.charCodeAt(i);
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: meta.mimeType || 'application/octet-stream' });
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = meta.fileName || 'CDR_FILE';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(()=>URL.revokeObjectURL(blobUrl), 10000);
+
+        if(!seen){
+          const entry = entries.find(x => x.id === id);
+          if(entry) entry.cdrSeen = true;
+          markCdrSeenOnServer(id);
+          await persistEntries();
+          renderLog();
+          return; // renderLog() એ આખું fileRow ફરી બનાવ્યું, જૂનું બટન હવે નથી
         }
       }catch(err){
         alert('ડાઉનલોડ કરવામાં ભૂલ: ' + err.message);
