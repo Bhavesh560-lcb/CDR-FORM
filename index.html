@@ -464,6 +464,23 @@
   }
   .log-head h2{margin:0;}
   .log-count{font-size:12.5px;color:var(--ink-soft);}
+  .log-search-row{margin-bottom:10px;}
+  .log-search-input{
+    width:100%;
+    box-sizing:border-box;
+    padding:9px 12px;
+    border:1px solid var(--paper-line);
+    border-radius:8px;
+    background:#fffdf7;
+    font-family:'Noto Sans Gujarati', sans-serif;
+    font-size:13.5px;
+    color:var(--ink);
+  }
+  .log-search-input:focus{
+    outline:none;
+    border-color:var(--brass);
+    box-shadow:0 0 0 2px rgba(169,124,52,0.15);
+  }
 
   /* ---- એન્ટ્રી કાર્ડ લિસ્ટ (મોબાઇલ પર ટેબલને બદલે, કંઈ પણ બહાર ન નીકળે એવું) ---- */
   /* ---- આખી સ્ક્રીન નાની-મોટી કરવાનું ફ્લોટિંગ બટન (PWA માં પિન્ચ-ઝૂમ કામ ન કરે એટલે) ---- */
@@ -593,6 +610,38 @@
     color:var(--navy-deep);
     background:rgba(169,124,52,0.14);
     padding:2px 8px;border-radius:10px;
+  }
+  /* ---- CDR ફાઇલ અપલોડ / ડાઉનલોડ / બેલ નોટિફિકેશન ---- */
+  .entry-cdr-file-row{
+    display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+    margin-top:7px;padding-top:7px;
+    border-top:1px dashed var(--paper-line);
+  }
+  .cdr-file-btn{
+    display:inline-flex;align-items:center;gap:5px;
+    font-size:11.5px;font-weight:700;
+    padding:5px 10px;border-radius:16px;
+    border:1px solid var(--paper-line);
+    background:#fffdf7;color:var(--navy-deep);
+    cursor:pointer;text-decoration:none;
+    white-space:nowrap;
+  }
+  .cdr-file-btn.download{border-color:#2e7d32;color:#2e7d32;background:#eef8ee;}
+  .cdr-file-name{
+    font-size:11px;color:var(--ink-soft);
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+    max-width:130px;
+  }
+  .cdr-bell{
+    display:inline-flex;align-items:center;justify-content:center;
+    width:22px;height:22px;border-radius:50%;
+    background:#ffe4e4;color:#c62828;font-size:13px;
+    animation:cdrBellPulse 1.4s ease-in-out infinite;
+    flex-shrink:0;
+  }
+  @keyframes cdrBellPulse{
+    0%,100%{ transform:scale(1); }
+    50%{ transform:scale(1.18); }
   }
   /* ---- યુઝર મેનેજમેન્ટ (પેન્ડિંગ/મંજૂર થયેલા) કાર્ડ લિસ્ટ — ટેબલને બદલે, બોક્ષ બહાર ન નીકળે ---- */
   .user-list{display:flex;flex-direction:column;gap:8px;margin-top:8px;}
@@ -859,8 +908,13 @@
         </div>
         <button type="button" class="addRowBtn" id="refreshEntriesBtn" style="margin-top:0;">🔄 તાજું કરો</button>
         <button type="button" class="addRowBtn" id="downloadXlsxBtn" style="margin-top:0;">⬇ Excel ડાઉનલોડ</button>
+        <button type="button" class="addRowBtn" id="openCdrFolderBtn" style="margin-top:0;display:none;">📂 CDR અપલોડ ફોલ્ડર</button>
+        <button type="button" class="addRowBtn" id="syncCdrFolderBtn" style="margin-top:0;display:none;">🔄 CDR ફાઇલો સ્કેન કરો</button>
         <span class="log-count" id="logCount">0 એન્ટ્રી</span>
       </div>
+    </div>
+    <div class="log-search-row">
+      <input type="text" id="logSearchInput" class="log-search-input" placeholder="🔍 શોધો — નામ, મોબાઇલ, ગુન્હા નં., આરોપીનું નામ, યુઝર...">
     </div>
     <div class="entry-list" id="logBody">
       <div class="entry-empty">હજુ કોઈ એન્ટ્રી નથી</div>
@@ -1205,6 +1259,8 @@ function revealApp(){
   const isAdmin = (currentUser === LOGIN_USER);
   document.getElementById('userMgmtCard').style.display = isAdmin ? 'block' : 'none';
   document.getElementById('filterToggle').style.display = isAdmin ? 'flex' : 'none';
+  document.getElementById('openCdrFolderBtn').style.display = isAdmin ? 'inline-block' : 'none';
+  document.getElementById('syncCdrFolderBtn').style.display = isAdmin ? 'inline-block' : 'none';
 }
 
 function showApp(){
@@ -1553,12 +1609,31 @@ async function persistEntries(){
   }catch(e){}
 }
 
+let logSearchQuery = '';
+
 function getVisibleEntries(){
   const isAdmin = (currentUser === LOGIN_USER);
   const showAll = isAdmin && logFilter === 'all';
   const cu = (currentUser || '').trim().toUpperCase();
-  return showAll ? entries : entries.filter(e => (e.username || '').trim().toUpperCase() === cu);
+  let list = showAll ? entries : entries.filter(e => (e.username || '').trim().toUpperCase() === cu);
+
+  const q = logSearchQuery.trim().toLowerCase();
+  if(q){
+    list = list.filter(e => {
+      const haystack = [
+        e.name, e.mobile, e.operator, e.accusedName, e.crimeNumber, e.username,
+        toDMY(e.dateFrom), toDMY(e.dateTo)
+      ].filter(Boolean).join(' ').toLowerCase();
+      return haystack.includes(q);
+    });
+  }
+  return list;
 }
+
+document.getElementById('logSearchInput').addEventListener('input', (e)=>{
+  logSearchQuery = e.target.value;
+  renderLog();
+});
 
 document.getElementById('refreshEntriesBtn').addEventListener('click', async ()=>{
   const btn = document.getElementById('refreshEntriesBtn');
@@ -1600,13 +1675,41 @@ function renderLog(){
 
   document.getElementById('logCount').textContent = list.length + ' એન્ટ્રી';
   if(list.length === 0){
-    body.innerHTML = '<div class="entry-empty">હજુ કોઈ એન્ટ્રી નથી</div>';
+    body.innerHTML = logSearchQuery.trim()
+      ? '<div class="entry-empty">શોધ સાથે મેળ ખાતી કોઈ એન્ટ્રી મળી નહીં</div>'
+      : '<div class="entry-empty">હજુ કોઈ એન્ટ્રી નથી</div>';
     return;
   }
+  const isAdmin = (currentUser === LOGIN_USER);
+  const cu = (currentUser || '').trim().toUpperCase();
+
   body.innerHTML = list.map((r, i)=>{
     const dFrom = toDMY(r.dateFrom) || '—';
     const dTo = toDMY(r.dateTo) || '—';
     const idx = String(list.length - i).padStart(3,'0');
+    const isOwner = (r.username || '').trim().toUpperCase() === cu;
+    const hasFile = !!r.cdrFileUrl;
+    const showBell = hasFile && r.cdrSeen === false && isOwner;
+
+    let fileRow = '';
+    if(isAdmin){
+      fileRow = hasFile
+        ? `<div class="entry-cdr-file-row">
+            <span class="cdr-file-btn download">📎 CDR ફાઇલ મળી</span>
+            <span class="cdr-file-name" title="${escapeHtml(r.cdrFileName || '')}">${escapeHtml(r.cdrFileName || '')}</span>
+          </div>`
+        : `<div class="entry-cdr-file-row">
+            <span class="cdr-file-name">CDR ફાઇલ હજુ અપલોડ ફોલ્ડરમાં આવી નથી</span>
+          </div>`;
+    } else if(hasFile && isOwner){
+      fileRow = `<div class="entry-cdr-file-row">
+        <a class="cdr-file-btn download" href="${escapeHtml(r.cdrFileUrl)}" target="_blank" rel="noopener" data-id="${r.id}" data-seen="${r.cdrSeen ? '1' : '0'}">
+          ⬇ CDR ડાઉનલોડ
+        </a>
+        ${showBell ? '<span class="cdr-bell" title="નવી CDR ફાઇલ આવી છે">🔔</span>' : ''}
+      </div>`;
+    }
+
     return `<div class="entry-card ${r.cdr ? 'cdr-done' : ''}">
       <div class="entry-card-top">
         <span class="entry-idx">#${idx}</span>
@@ -1636,6 +1739,7 @@ function renderLog(){
           <div class="entry-value">${escapeHtml(r.accusedName || '—')}</div>
         </div>
       </div>
+      ${fileRow}
     </div>`;
   }).join('');
 
@@ -1651,6 +1755,93 @@ function renderLog(){
       renderLog();
     });
   });
+
+  body.querySelectorAll('.cdr-file-btn.download').forEach(a=>{
+    a.addEventListener('click', (e)=>{
+      const id = e.currentTarget.dataset.id;
+      const seen = e.currentTarget.dataset.seen === '1';
+      if(!seen){
+        const entry = entries.find(x => x.id === id);
+        if(entry) entry.cdrSeen = true;
+        markCdrSeenOnServer(id);
+        persistEntries();
+        renderLog();
+      }
+    });
+  });
+}
+
+document.getElementById('openCdrFolderBtn').addEventListener('click', async ()=>{
+  const btn = document.getElementById('openCdrFolderBtn');
+  const url = currentWebhookUrl();
+  if(!url){ alert('પહેલા Webhook URL સેટ કરો.'); return; }
+  btn.disabled = true;
+  const origText = btn.textContent;
+  btn.textContent = '📂 ખૂલે છે...';
+  try{
+    const sep = url.includes('?') ? '&' : '?';
+    const res = await fetchWithRetry(url + sep + 'action=getCdrFolderUrl');
+    const text = await res.text();
+    const result = JSON.parse(text);
+    if(result && result.status === 'ok' && result.url){
+      window.open(result.url, '_blank', 'noopener');
+    } else {
+      alert('ફોલ્ડર ખોલવામાં ભૂલ: ' + ((result && result.message) || 'અજાણી ભૂલ'));
+    }
+  }catch(e){
+    alert('ફોલ્ડર ખોલવામાં ભૂલ: ' + e.message);
+  }
+  btn.textContent = origText;
+  btn.disabled = false;
+});
+
+document.getElementById('syncCdrFolderBtn').addEventListener('click', async ()=>{
+  const btn = document.getElementById('syncCdrFolderBtn');
+  const url = currentWebhookUrl();
+  if(!url){ alert('પહેલા Webhook URL સેટ કરો.'); return; }
+  btn.disabled = true;
+  const origText = btn.textContent;
+  btn.textContent = '🔄 સ્કેન થાય છે...';
+  try{
+    const res = await fetchWithRetry(url, {
+      method:'POST',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify({ action:'syncCdrFolder' })
+    });
+    const text = await res.text();
+    const result = JSON.parse(text);
+    if(result && result.status === 'ok'){
+      const n = result.matchedCount || 0;
+      let msg = n > 0 ? `✅ ${n} CDR ફાઇલ એન્ટ્રી સાથે જોડાઈ ગઈ.` : 'કોઈ નવી મેચ થયેલી ફાઇલ મળી નહીં.';
+      if(result.unmatched && result.unmatched.length > 0){
+        msg += `\n\n⚠ આ ફાઇલોમાં નંબર ઓળખાયો નહીં / મેચ મળ્યો નહીં:\n` + result.unmatched.join('\n');
+      }
+      alert(msg);
+      if(n > 0) await loadEntries();
+    } else {
+      alert('સ્કેન કરવામાં ભૂલ: ' + ((result && result.message) || 'અજાણી ભૂલ'));
+    }
+  }catch(e){
+    alert('સ્કેન કરવામાં ભૂલ: ' + e.message);
+  }
+  btn.textContent = origText;
+  btn.disabled = false;
+});
+
+async function markCdrSeenOnServer(id){
+  const url = currentWebhookUrl();
+  if(!url) return { status:'error' };
+  try{
+    const res = await fetchWithRetry(url, {
+      method:'POST',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify({ action:'markCdrSeen', id })
+    });
+    const text = await res.text();
+    return JSON.parse(text);
+  }catch(e){
+    return { status:'error', message: e.message };
+  }
 }
 
 async function setCdrOnServer(id, cdr){
