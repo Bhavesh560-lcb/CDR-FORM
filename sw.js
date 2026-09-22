@@ -4,7 +4,7 @@
 // નોંધ: Google Sheet સાથેની actual entries/login સિંક માટે ઈન્ટરનેટ જરૂરી જ રહેશે —
 // આ ફક્ત એપનું "શેલ" (HTML/CSS/JS/આઇકોન) ઑફલાઇન લોડ થાય એ સુનિશ્ચિત કરે છે.
 
-const CACHE_NAME = 'gunho-data-entry-v14';
+const CACHE_NAME = 'gunho-data-entry-v18';
 const APP_SHELL = [
   './',
   './index.html',
