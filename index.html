@@ -1682,6 +1682,7 @@ function renderLog(){
   }
   const isAdmin = (currentUser === LOGIN_USER);
   const cu = (currentUser || '').trim().toUpperCase();
+  const webhookUrl = currentWebhookUrl();
 
   body.innerHTML = list.map((r, i)=>{
     const dFrom = toDMY(r.dateFrom) || '—';
@@ -1690,6 +1691,12 @@ function renderLog(){
     const isOwner = (r.username || '').trim().toUpperCase() === cu;
     const hasFile = !!r.cdrFileUrl;
     const showBell = hasFile && r.cdrSeen === false && isOwner;
+    // ડાઉનલોડ લિંક ફાઇલની સીધી Google Drive લિંકને બદલે Apps Script મારફતે
+    // (script.google.com પરથી) જાય છે — નહીં તો ફોનમાં Google Drive એપ
+    // વચ્ચે આવી જાય છે અને ફાઇલ ડાઉનલોડ થવાને બદલે ફક્ત ખૂલી જાય છે.
+    const downloadUrl = webhookUrl
+      ? (webhookUrl + (webhookUrl.includes('?') ? '&' : '?') + 'action=downloadCdrFile&id=' + encodeURIComponent(r.id))
+      : r.cdrFileUrl;
 
     let fileRow = '';
     if(isAdmin){
@@ -1703,7 +1710,7 @@ function renderLog(){
           </div>`;
     } else if(hasFile && isOwner){
       fileRow = `<div class="entry-cdr-file-row">
-        <a class="cdr-file-btn download" href="${escapeHtml(r.cdrFileUrl)}" target="_blank" rel="noopener" data-id="${r.id}" data-seen="${r.cdrSeen ? '1' : '0'}">
+        <a class="cdr-file-btn download" href="${escapeHtml(downloadUrl)}" download="${escapeHtml(r.cdrFileName || 'CDR_FILE')}" target="_blank" rel="noopener" data-id="${r.id}" data-seen="${r.cdrSeen ? '1' : '0'}">
           ⬇ CDR ડાઉનલોડ
         </a>
         ${showBell ? '<span class="cdr-bell" title="નવી CDR ફાઇલ આવી છે">🔔</span>' : ''}
@@ -1815,6 +1822,9 @@ document.getElementById('syncCdrFolderBtn').addEventListener('click', async ()=>
       let msg = n > 0 ? `✅ ${n} CDR ફાઇલ એન્ટ્રી સાથે જોડાઈ ગઈ.` : 'કોઈ નવી મેચ થયેલી ફાઇલ મળી નહીં.';
       if(result.unmatched && result.unmatched.length > 0){
         msg += `\n\n⚠ આ ફાઇલોમાં નંબર ઓળખાયો નહીં / મેચ મળ્યો નહીં:\n` + result.unmatched.join('\n');
+      }
+      if(result.hasMore){
+        msg += `\n\n📋 ફોલ્ડરમાં હજુ વધુ ફાઇલો બાકી છે — "🔄 CDR ફાઇલો સ્કેન કરો" ફરી એક વાર દબાવો.`;
       }
       alert(msg);
       if(n > 0) await loadEntries();
