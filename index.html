@@ -912,6 +912,7 @@
         <button type="button" class="addRowBtn" id="downloadXlsxBtn" style="margin-top:0;">⬇ Excel ડાઉનલોડ</button>
         <button type="button" class="addRowBtn" id="openCdrFolderBtn" style="margin-top:0;display:none;">📂 CDR અપલોડ ફોલ્ડર</button>
         <button type="button" class="addRowBtn" id="syncCdrFolderBtn" style="margin-top:0;display:none;">🔄 CDR ફાઇલો સ્કેન કરો</button>
+        <button type="button" class="addRowBtn" id="testPushBtn" style="margin-top:0;display:none;">🔔 ટેસ્ટ પુશ</button>
         <span class="log-count" id="logCount">0 એન્ટ્રી</span>
       </div>
     </div>
@@ -954,41 +955,92 @@ const firebaseConfig = {
 // certificates → "Generate key pair" — ત્યાંથી મળતી "Key pair" કૉપી કરો.
 const VAPID_PUBLIC_KEY = 'BHoTV-RkAgVglCckaxcGNN1YMemgEJcWvapi4_6rVIwQaY-rYWZVGcFhVI0AsemqzYXb9ZmbtGKQ8lJ_hXUpG60';
 
-let pushSetupDone = false;
+let pushSetupInFlight = false;
+
+// એક-વાર-જ ટોસ્ટ બતાવવા માટે (દર લોગિન/ઓપન વખતે એ જ સંદેશો ફરી-ફરી ના આવે)
+function pushToastOnce_(key, msg, isErr){
+  try{
+    const flagKey = 'gunho-push-toast-' + key;
+    if(localStorage.getItem(flagKey)) return;
+    localStorage.setItem(flagKey, '1');
+    toast(msg, !!isErr);
+  }catch(e){ toast(msg, !!isErr); }
+}
 
 async function setupPushNotifications(){
-  if(pushSetupDone) return; // એક સેશનમાં એક જ વાર પ્રયત્ન કરો
-  pushSetupDone = true;
+  if(pushSetupInFlight) return;
+  pushSetupInFlight = true;
   try{
-    if(firebaseConfig.apiKey === 'FIREBASE_API_KEY') return; // હજુ સેટઅપ થયું નથી
-    if(!('serviceWorker' in navigator) || !('Notification' in window)) return;
-    if(!currentUser) return;
-
-    if(Notification.permission === 'default'){
-      await Notification.requestPermission();
+    if(firebaseConfig.apiKey === 'FIREBASE_API_KEY'){
+      pushSetupInFlight = false;
+      return; // હજુ Firebase સેટઅપ થયું નથી
     }
-    if(Notification.permission !== 'granted') return;
+    if(!currentUser){ pushSetupInFlight = false; return; }
+    if(!('serviceWorker' in navigator) || !('Notification' in window)){
+      pushToastOnce_('unsupported', 'આ બ્રાઉઝર પુશ નોટિફિકેશન સપોર્ટ કરતું નથી.', true);
+      pushSetupInFlight = false;
+      return;
+    }
 
     if(!firebase.apps || !firebase.apps.length) firebase.initializeApp(firebaseConfig);
+
+    if(typeof firebase.messaging.isSupported === 'function'){
+      const supported = await firebase.messaging.isSupported();
+      if(!supported){
+        pushToastOnce_('unsupported', 'આ બ્રાઉઝર/એપ પુશ નોટિફિકેશન સપોર્ટ કરતું નથી — Chrome બ્રાઉઝરમાં ખોલો.', true);
+        pushSetupInFlight = false;
+        return;
+      }
+    }
+
+    const wasDefault = Notification.permission === 'default';
+    if(wasDefault){
+      await Notification.requestPermission();
+    }
+    if(Notification.permission !== 'granted'){
+      if(wasDefault){
+        pushToastOnce_('denied', 'નોટિફિકેશન પરવાનગી નકારી — ચાલુ કરવા ફોનના બ્રાઉઝર સેટિંગ્સમાંથી પરવાનગી આપો.', true);
+      }
+      pushSetupInFlight = false;
+      return;
+    }
+
     const registration = await navigator.serviceWorker.ready;
     const messaging = firebase.messaging();
     const token = await messaging.getToken({
       vapidKey: VAPID_PUBLIC_KEY,
       serviceWorkerRegistration: registration
     });
-    if(!token) return;
+    if(!token){
+      pushToastOnce_('notoken', 'નોટિફિકેશન ટોકન ના મળ્યો — થોડી વાર પછી ફરી પ્રયત્ન કરો.', true);
+      pushSetupInFlight = false;
+      return;
+    }
 
     const url = currentWebhookUrl();
-    if(!url) return;
-    await fetchWithRetry(url, {
+    if(!url){
+      pushSetupInFlight = false;
+      return; // Webhook URL હજુ સેટ નથી — settings સેવ થયા પછી ફરી લોગિન/ઓપન વખતે પ્રયત્ન થશે
+    }
+
+    const res = await fetchWithRetry(url, {
       method: 'POST',
+      headers: {'Content-Type':'text/plain;charset=utf-8'},
       body: JSON.stringify({ action: 'saveDeviceToken', username: currentUser, token: token })
     });
+    const result = JSON.parse(await res.text());
+    if(result && result.status === 'ok'){
+      pushToastOnce_('ready', '🔔 CDR નોટિફિકેશન ચાલુ થયું');
+    } else {
+      pushToastOnce_('saveerr', 'નોટિફિકેશન ટોકન સેવ કરવામાં ભૂલ: ' + ((result && result.message) || 'અજાણી ભૂલ'), true);
+    }
   }catch(err){
     // પુશ સેટઅપ નિષ્ફળ જાય તો પણ એપ સામાન્ય રીતે કામ કરતી રહે —
     // ફક્ત ઍપ બંધ હોય ત્યારેનું નોટિફિકેશન નહીં મળે.
     console.warn('Push setup failed:', err);
+    pushToastOnce_('exception', 'નોટિફિકેશન સેટઅપમાં ભૂલ: ' + err.message, true);
   }
+  pushSetupInFlight = false;
 }
 
 // ---- ડેટા સેવ કરવાની વ્યવસ્થા ----
@@ -1319,7 +1371,12 @@ function revealApp(){
   document.getElementById('filterToggle').style.display = isAdmin ? 'flex' : 'none';
   document.getElementById('openCdrFolderBtn').style.display = isAdmin ? 'inline-block' : 'none';
   document.getElementById('syncCdrFolderBtn').style.display = isAdmin ? 'inline-block' : 'none';
-  setupPushNotifications();
+  document.getElementById('testPushBtn').style.display = isAdmin ? 'inline-block' : 'none';
+  // ⚠ અહીંથી setupPushNotifications() સીધું નથી બોલાવ્યું — Webhook URL હજુ
+  // loadSettings() માંથી લોડ થયું ન હોય (ખાસ કરીને પાછલા-લોગિનમાં, જ્યારે
+  // revealApp() loadSettings() પૂરું થાય એ પહેલાં જ ચાલે છે) તો ટોકન ક્યારેય
+  // સેવ જ ન થાય — એટલે એ init()/attemptLogin() માંથી, settings લોડ થયા
+  // પછી જ બોલાવાય છે.
 }
 
 function showApp(){
@@ -1355,6 +1412,7 @@ async function attemptLogin(){
     localStorage.setItem('gunho-logged-in', u);
     err.textContent = '';
     showApp();
+    setupPushNotifications(); // settings આ સમય સુધીમાં લોડ થઈ ચૂક્યા છે
   } else {
     err.textContent = 'યુઝર આઇડી અથવા પાસવર્ડ ખોટો છે.';
     document.getElementById('loginPass').value = '';
@@ -1964,6 +2022,28 @@ document.getElementById('syncCdrFolderBtn').addEventListener('click', async ()=>
   btn.disabled = false;
 });
 
+document.getElementById('testPushBtn').addEventListener('click', async ()=>{
+  const btn = document.getElementById('testPushBtn');
+  const url = currentWebhookUrl();
+  if(!url){ alert('પહેલા Webhook URL સેટ કરો.'); return; }
+  const username = prompt('કયા યુઝર આઇડી માટે ટેસ્ટ પુશ મોકલવો?');
+  if(!username) return;
+  btn.disabled = true;
+  const origText = btn.textContent;
+  btn.textContent = '🔔 તપાસાય છે...';
+  try{
+    const sep = url.includes('?') ? '&' : '?';
+    const res = await fetchWithRetry(url + sep + 'action=testPush&username=' + encodeURIComponent(username));
+    const text = await res.text();
+    const result = JSON.parse(text);
+    alert(JSON.stringify(result, null, 2));
+  }catch(e){
+    alert('ટેસ્ટ પુશમાં ભૂલ: ' + e.message);
+  }
+  btn.textContent = origText;
+  btn.disabled = false;
+});
+
 async function markCdrSeenOnServer(id){
   const url = currentWebhookUrl();
   if(!url) return { status:'error' };
@@ -2161,6 +2241,9 @@ document.getElementById('fTillDate').addEventListener('change', function(){
   checkLogin();
   addMobileRow();
   await loadSettings();
+  if(currentUser){
+    setupPushNotifications(); // Webhook URL હવે લોડ થઈ ગયું — પાછલા-લોગિન વખતે અહીંથી
+  }
   const tasks = [loadEntries()];
   if(currentUser === LOGIN_USER){
     tasks.push(renderUserList());
