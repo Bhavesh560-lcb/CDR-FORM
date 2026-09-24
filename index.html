@@ -551,6 +551,11 @@
     line-height:1.3;word-break:break-word;
   }
   .entry-card.cdr-done .entry-name{color:#b00000;}
+  .entry-timestamp{
+    font-size:11px;font-weight:700;color:var(--brass);
+    letter-spacing:.2px;margin-top:1px;
+  }
+  .entry-card.cdr-done .entry-timestamp{color:#b00000;}
   .entry-cdr-toggle{
     display:flex;flex-direction:column;align-items:center;gap:2px;
     flex-shrink:0;
@@ -846,8 +851,10 @@
     <p class="card-help">યુઝરે જાતે રજિસ્ટ્રેશન કરેલું છે — મંજૂર કરો ત્યાર પછી જ એ લોગિન કરી શકશે.</p>
     <div class="user-list" id="pendingListBody"></div>
 
-    <h2 style="margin-top:24px;font-size:16px;">મંજૂર થયેલા યુઝર</h2>
-    <div class="user-list" id="userListBody"></div>
+    <details class="setup" id="approvedUsersBox" style="margin-top:24px;">
+      <summary>મંજૂર થયેલા યુઝર <span id="approvedUsersCount" style="font-weight:400;color:var(--ink-soft);font-size:13px;"></span></summary>
+      <div class="user-list" id="userListBody" style="margin-top:12px;"></div>
+    </details>
   </div>
 
   <div class="card glow glow-teal-purple">
@@ -1282,6 +1289,9 @@ async function renderUserList(){
       });
     });
   }
+
+  const countEl = document.getElementById('approvedUsersCount');
+  if(countEl) countEl.textContent = `(${approved.length})`;
 
   const body = document.getElementById('userListBody');
   if(approved.length === 0){
@@ -1832,6 +1842,7 @@ function renderLog(){
         <span class="entry-idx">#${idx}</span>
         <div class="entry-name-wrap">
           <div class="entry-name">${escapeHtml(r.name)}</div>
+          ${r.ts ? `<div class="entry-timestamp">🕒 ${escapeHtml(formatTimestamp_(r.ts))}</div>` : ''}
         </div>
       </div>
       <div class="entry-mobile-row">
@@ -2085,6 +2096,21 @@ function toDMY(dateStr){
 
 function escapeHtml(s){
   return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// એન્ટ્રી ક્યારે સેવ થઈ (TIME STAMP) — તારીખ + સમય બંને, DD-MM-YYYY, hh:mm AM/PM ફોર્મેટમાં
+function formatTimestamp_(iso){
+  if(!iso) return '';
+  const d = new Date(iso);
+  if(isNaN(d.getTime())) return '';
+  const dd = String(d.getDate()).padStart(2,'0');
+  const mm = String(d.getMonth()+1).padStart(2,'0');
+  const yyyy = d.getFullYear();
+  let h = d.getHours();
+  const min = String(d.getMinutes()).padStart(2,'0');
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12; if(h === 0) h = 12;
+  return `${dd}-${mm}-${yyyy}, ${h}:${min} ${ampm}`;
 }
 
 async function submitForm(){
