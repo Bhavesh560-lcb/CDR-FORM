@@ -920,6 +920,7 @@
         <button type="button" class="addRowBtn" id="openCdrFolderBtn" style="margin-top:0;display:none;">📂 CDR અપલોડ ફોલ્ડર</button>
         <button type="button" class="addRowBtn" id="syncCdrFolderBtn" style="margin-top:0;display:none;">🔄 CDR ફાઇલો સ્કેન કરો</button>
         <button type="button" class="addRowBtn" id="testPushBtn" style="margin-top:0;display:none;">🔔 ટેસ્ટ પુશ</button>
+        <button type="button" class="addRowBtn" id="testDriveBtn" style="margin-top:0;display:none;">🗂️ ટેસ્ટ Drive</button>
         <span class="log-count" id="logCount">0 એન્ટ્રી</span>
       </div>
     </div>
@@ -1382,6 +1383,7 @@ function revealApp(){
   document.getElementById('openCdrFolderBtn').style.display = isAdmin ? 'inline-block' : 'none';
   document.getElementById('syncCdrFolderBtn').style.display = isAdmin ? 'inline-block' : 'none';
   document.getElementById('testPushBtn').style.display = isAdmin ? 'inline-block' : 'none';
+  document.getElementById('testDriveBtn').style.display = isAdmin ? 'inline-block' : 'none';
   // ⚠ અહીંથી setupPushNotifications() સીધું નથી બોલાવ્યું — Webhook URL હજુ
   // loadSettings() માંથી લોડ થયું ન હોય (ખાસ કરીને પાછલા-લોગિનમાં, જ્યારે
   // revealApp() loadSettings() પૂરું થાય એ પહેલાં જ ચાલે છે) તો ટોકન ક્યારેય
@@ -2050,6 +2052,26 @@ document.getElementById('testPushBtn').addEventListener('click', async ()=>{
     alert(JSON.stringify(result, null, 2));
   }catch(e){
     alert('ટેસ્ટ પુશમાં ભૂલ: ' + e.message);
+  }
+  btn.textContent = origText;
+  btn.disabled = false;
+});
+
+document.getElementById('testDriveBtn').addEventListener('click', async ()=>{
+  const btn = document.getElementById('testDriveBtn');
+  const url = currentWebhookUrl();
+  if(!url){ alert('પહેલા Webhook URL સેટ કરો.'); return; }
+  btn.disabled = true;
+  const origText = btn.textContent;
+  btn.textContent = '🗂️ તપાસાય છે...';
+  try{
+    const sep = url.includes('?') ? '&' : '?';
+    const res = await fetchWithRetry(url + sep + 'action=testDrive');
+    const text = await res.text();
+    const result = JSON.parse(text);
+    alert(JSON.stringify(result, null, 2));
+  }catch(e){
+    alert('ટેસ્ટ Drive માં ભૂલ: ' + e.message);
   }
   btn.textContent = origText;
   btn.disabled = false;
