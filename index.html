@@ -1385,6 +1385,21 @@ function revealApp(){
   document.getElementById('syncCdrFolderBtn').style.display = isAdmin ? 'inline-block' : 'none';
   document.getElementById('testPushBtn').style.display = isAdmin ? 'inline-block' : 'none';
   document.getElementById('testDriveBtn').style.display = isAdmin ? 'inline-block' : 'none';
+  // ⚡ એડમિન સામાન્ય રીતે પોતે એન્ટ્રી બનાવતા નથી — ડિફોલ્ટ "મારી એન્ટ્રીઓ"
+  // ટૅબ પર એડમિનને લગભગ ખાલી યાદી દેખાતી (એડમિનના નામે કોઈ એન્ટ્રી ન હોય
+  // તો), જાણે "એન્ટ્રીઓ/WhatsApp મોકલાયેલ ફાઇલો ગાયબ થઈ ગઈ" હોય એવું
+  // લાગતું — "એક જગ્યાએ બતાવે, બીજે ન બતાવે" / "બધી એન્ટ્રી ન દેખાય" /
+  // "મોકલાયેલ ફાઇલ ન દેખાય" ની ફરિયાદોનું આ મુખ્ય કારણ હતું. હવે એડમિન
+  // લોગિન થતાં જ સીધું "બધી એન્ટ્રીઓ" ટૅબ પર ખૂલશે.
+  if(isAdmin){
+    logFilter = 'all';
+    const allBtn = document.getElementById('showAllBtn');
+    const mineBtn = document.getElementById('showMineBtn');
+    if(allBtn) allBtn.classList.add('active');
+    if(mineBtn) mineBtn.classList.remove('active');
+    const title = document.getElementById('logTitle');
+    if(title) title.textContent = 'બધી એન્ટ્રીઓ';
+  }
   // ⚠ અહીંથી setupPushNotifications() સીધું નથી બોલાવ્યું — Webhook URL હજુ
   // loadSettings() માંથી લોડ થયું ન હોય (ખાસ કરીને પાછલા-લોગિનમાં, જ્યારે
   // revealApp() loadSettings() પૂરું થાય એ પહેલાં જ ચાલે છે) તો ટોકન ક્યારેય
@@ -1704,14 +1719,28 @@ function makeId(){
 async function fetchEntriesFromServer(){
   const url = currentWebhookUrl();
   if(!url) return null;
-  try{
-    const sep = url.includes('?') ? '&' : '?';
-    const res = await fetchWithRetry(url + sep + 'action=listEntries');
-    const text = await res.text();
-    const parsed = JSON.parse(text);
-    if(parsed && parsed.status === 'ok' && Array.isArray(parsed.entries)) return parsed.entries;
-    return null;
-  }catch(e){ return null; }
+  const sep = url.includes('?') ? '&' : '?';
+  // ⚡ Google Apps Script ક્યારેક (ખાસ કરીને એન્ટ્રીની યાદી મોટી હોય ત્યારે)
+  // JSON ને બદલે ક્ષણિક HTML/ચેતવણી-પેજ (HTTP 200 સાથે!) મોકલે છે —
+  // fetchWithRetry() ફક્ત નેટવર્ક-ભૂલ/5xx પર જ ફરી પ્રયત્ન કરે છે, આ
+  // કિસ્સો (200 OK પણ ખોટો JSON) નહીં. પહેલાં આવું થાય એટલે સીધું જૂના/
+  // મર્યાદિત (300) લોકલ કૅશ પર જતું રહેતું — "એક જગ્યાએ બતાવે, બીજે નહીં"
+  // અને "બધી એન્ટ્રી ન દેખાય" ની ફરિયાદનું આ મુખ્ય કારણ હતું. હવે અહીં
+  // પણ (bridge ની જેમ) 3 વાર ફરી પ્રયત્ન કરાય છે.
+  const delays = [500, 1000, 2000];
+  let lastErr;
+  for(let attempt = 0; attempt <= delays.length; attempt++){
+    try{
+      const res = await fetchWithRetry(url + sep + 'action=listEntries');
+      const text = await res.text();
+      const parsed = JSON.parse(text);
+      if(parsed && parsed.status === 'ok' && Array.isArray(parsed.entries)) return parsed.entries;
+      lastErr = new Error('અયોગ્ય જવાબ');
+    }catch(e){ lastErr = e; }
+    if(attempt < delays.length) await sleep_(delays[attempt]);
+  }
+  console.error('એન્ટ્રી યાદી લોડ કરવામાં ભૂલ:', lastErr && lastErr.message);
+  return null;
 }
 
 async function loadEntries(){
@@ -1728,6 +1757,10 @@ async function loadEntries(){
       if(!e.id) e.id = makeId();
       if(e.cdr === undefined) e.cdr = false;
     });
+    // ⚡ ચૂપચાપ જૂનો/મર્યાદિત (વધુમાં વધુ 300) કૅશ બતાવવાને બદલે — સ્પષ્ટ
+    // જણાવો, જેથી "બધી એન્ટ્રી કેમ નથી દેખાતી / WhatsApp મોકલાયેલ એન્ટ્રી
+    // કેમ નથી દેખાતી" એવી મૂંઝવણ ન થાય અને ફરી પ્રયત્ન કરી શકાય.
+    alert('⚠ સર્વર પરથી તાજી એન્ટ્રી યાદી લાવવામાં ભૂલ આવી — હાલ જૂની/મર્યાદિત (વધુમાં વધુ 300) યાદી બતાવાય છે, જે અધૂરી હોઈ શકે. ઈન્ટરનેટ ચેક કરી "🔄 તાજું કરો" દબાવો.');
   }
   regCounter = entries.length;
   renderLog();
@@ -1918,7 +1951,7 @@ function renderLog(){
         await persistEntries();
         renderLog();
         notifyWhatsappBridge(id); // ⚡ ફક્ત આ જ ફાઇલ તરત મોકલવા bridge ને જણાવો — બીજી કોઈ ફાઇલ સ્કેન નહીં થાય
-        alert('✓ ફરી મોકલવા માટે મૂકી દેવાયું — હમણાં જ WhatsApp bridge ને જાણ કરી છે.');
+        alert('✓ ફરી મોકલવા માટે મૂકી દેવાયું — WhatsApp bridge ને જાણ કરી છે, 30 સેકન્ડની અંદર ફાઇલ મોકલાઈ જવી જોઈએ (bridge તમારા કમ્પ્યુટર પર ચાલુ હોવું જરૂરી છે).');
         return; // renderLog() એ ફરી બનાવ્યું, જૂનું બટન હવે નથી
       }catch(err){
         alert('ભૂલ: ' + err.message);
