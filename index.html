@@ -1970,6 +1970,12 @@ document.getElementById('syncCdrFolderBtn').addEventListener('click', async ()=>
     const result = JSON.parse(text);
     if(result && result.status === 'ok'){
       const n = result.matchedCount || 0;
+      // ⚡ bridge ને સૌથી પહેલાં જ જણાવી દો — નીચેનું alert() પોપઅપ બ્રાઉઝરને
+      // થોભાવી દે છે (જ્યાં સુધી "OK" ન દબાવાય), અને loadEntries() ને પણ થોડી
+      // સેકન્ડ લાગી શકે. પહેલાં notifyWhatsappBridge() આ બંનેની પાછળ હતું,
+      // એટલે "OK" ન દબાવાય ત્યાં સુધી bridge ને સંદેશો જ નહોતો પહોંચતો —
+      // "સ્કેન પછી વાર લાગે છે" ની ફરિયાદનું આ મુખ્ય કારણ હતું.
+      if(n > 0) notifyWhatsappBridge();
       let msg = n > 0 ? `✅ ${n} CDR ફાઇલ એન્ટ્રી સાથે જોડાઈ ગઈ.` : 'કોઈ નવી મેચ થયેલી ફાઇલ મળી નહીં.';
       if(result.unmatched && result.unmatched.length > 0){
         msg += `\n\n⚠ આ ફાઇલોમાં નંબર ઓળખાયો નહીં / મેચ મળ્યો નહીં:\n` + result.unmatched.join('\n');
@@ -1979,7 +1985,6 @@ document.getElementById('syncCdrFolderBtn').addEventListener('click', async ()=>
       }
       alert(msg);
       if(n > 0) await loadEntries();
-      notifyWhatsappBridge(); // સ્કેન પૂરું થયું — bridge ને તરત ચેક કરવા જણાવો
     } else {
       alert('સ્કેન કરવામાં ભૂલ: ' + ((result && result.message) || 'અજાણી ભૂલ'));
     }
