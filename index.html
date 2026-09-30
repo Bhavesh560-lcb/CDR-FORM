@@ -1975,7 +1975,11 @@ document.getElementById('syncCdrFolderBtn').addEventListener('click', async ()=>
       // સેકન્ડ લાગી શકે. પહેલાં notifyWhatsappBridge() આ બંનેની પાછળ હતું,
       // એટલે "OK" ન દબાવાય ત્યાં સુધી bridge ને સંદેશો જ નહોતો પહોંચતો —
       // "સ્કેન પછી વાર લાગે છે" ની ફરિયાદનું આ મુખ્ય કારણ હતું.
-      if(n > 0) notifyWhatsappBridge();
+      // ⚡ ફક્ત આ જ સ્કેનમાં હમણાં જ મેચ થયેલી ફાઇલોના id મોકલો — આખી
+      // પેન્ડિંગ યાદી નહીં, નહીં તો ઘણા સમયથી પેન્ડિંગ પડેલી બીજી બધી
+      // (ન-ઇચ્છેલી) ફાઇલો પણ સાથે મોકલાવાનું શરૂ થઈ જાય.
+      const matchedIds = (result.matched || []).map(m => String(m.row)).filter(Boolean);
+      if(matchedIds.length > 0) notifyWhatsappBridge(matchedIds);
       let msg = n > 0 ? `✅ ${n} CDR ફાઇલ એન્ટ્રી સાથે જોડાઈ ગઈ.` : 'કોઈ નવી મેચ થયેલી ફાઇલ મળી નહીં.';
       if(result.unmatched && result.unmatched.length > 0){
         msg += `\n\n⚠ આ ફાઇલોમાં નંબર ઓળખાયો નહીં / મેચ મળ્યો નહીં:\n` + result.unmatched.join('\n');
@@ -1996,18 +2000,22 @@ document.getElementById('syncCdrFolderBtn').addEventListener('click', async ()=>
 });
 
 // ⚡ gunho-whatsapp-bridge.js (તમારા કમ્પ્યુટર પર ચાલતું) ને જણાવે છે કે
-// "હમણાં જ સ્કેન થયું (કે ફરી મોકલો દબાયું), તપાસી લો" — જેથી બ્રિજ તરત જ
-// ફાઇલ WhatsApp પર મોકલી શકે. હવે કોઈ આપોઆપ પોલિંગ/સેફ્ટી-નેટ નથી —
+// "આ ચોક્કસ એન્ટ્રી(ઓ) હમણાં જ મોકલવા લાયક થઈ છે, તપાસી લો" — જેથી બ્રિજ
+// તરત જ ફાઇલ WhatsApp પર મોકલી શકે. હવે કોઈ આપોઆપ પોલિંગ/સેફ્ટી-નેટ નથી —
 // ફક્ત આ સંદેશો જ બ્રિજને જગાડે છે.
-// id આપો તો બ્રિજ ફક્ત એ જ એન્ટ્રી ચેક/મોકલશે (દા.ત. "ફરી મોકલો" બટન) —
-// id ન આપો તો પેન્ડિંગ યાદીની બધી એન્ટ્રી ચેક કરશે (સ્કેન પછી).
+// ⚡ સુરક્ષા માટે id(ઓ) ફરજિયાત છે — ખાલી/વગર-id સંદેશો ક્યારેય મોકલાતો
+// નથી, નહીં તો બ્રિજ ભૂલથી આખી (ઘણા સમયથી પેન્ડિંગ પડેલી, ન-ઇચ્છેલી)
+// યાદી એકસાથે મોકલી શકે. id એક (સિંગલ "ફરી મોકલો") અથવા ઘણા (array,
+// "સ્કેન" પછી હમણાં જ મેચ થયેલી બધી ફાઇલો) આપી શકાય.
 // ⚠ આ ફક્ત ત્યારે જ કામ કરે જ્યારે: (1) બ્રિજ આ જ કમ્પ્યુટર પર ચાલુ હોય,
 // (2) બ્રાઉઝર https://localhost પર આ "http" સંદેશો રોકતું ન હોય. બ્રિજ
 // ચાલુ ન હોય કે સંદેશો ન પહોંચે તો પણ કંઈ ભૂલ નહીં દેખાય (ચૂપચાપ છોડાય છે) —
 // એ કિસ્સામાં "🔄 CDR ફાઇલો સ્કેન કરો" કે "🔁 ફરી મોકલો" ફરી દબાવવું પડે.
-function notifyWhatsappBridge(id){
+function notifyWhatsappBridge(ids){
   try{
-    var q = id ? ('?id=' + encodeURIComponent(id)) : '';
+    var list = Array.isArray(ids) ? ids : (ids !== undefined && ids !== null && ids !== '' ? [ids] : []);
+    if(list.length === 0) return; // id વગર ક્યારેય bridge ને સંદેશો ન મોકલો
+    var q = '?ids=' + encodeURIComponent(list.join(','));
     fetch('http://127.0.0.1:8787/trigger' + q, { mode: 'no-cors' }).catch(()=>{});
   }catch(e){ /* ચૂપચાપ છોડો — bridge ચાલુ ન હોય તો પણ એપનું બાકીનું કામ ચાલુ રહે */ }
 }
