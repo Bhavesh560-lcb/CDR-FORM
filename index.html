@@ -1833,7 +1833,7 @@ function renderLog(){
           </div>`;
       } else {
         fileRow = `<div class="entry-cdr-file-row">
-            <span class="cdr-file-name">CDR ફાઇલ હજુ અપલોડ ફોલ્ડરમાં આવી નથી</span>
+            <span class="cdr-file-name">⏳ WhatsApp પર મોકલવાનું બાકી છે...</span>
           </div>`;
       }
     } else if(hasFile && isOwner){
@@ -1978,6 +1978,7 @@ document.getElementById('syncCdrFolderBtn').addEventListener('click', async ()=>
       }
       alert(msg);
       if(n > 0) await loadEntries();
+      notifyWhatsappBridge(); // સ્કેન પૂરું થયું — bridge ને તરત ચેક કરવા જણાવો
     } else {
       alert('સ્કેન કરવામાં ભૂલ: ' + ((result && result.message) || 'અજાણી ભૂલ'));
     }
@@ -1987,6 +1988,19 @@ document.getElementById('syncCdrFolderBtn').addEventListener('click', async ()=>
   btn.textContent = origText;
   btn.disabled = false;
 });
+
+// ⚡ gunho-whatsapp-bridge.js (તમારા કમ્પ્યુટર પર ચાલતું) ને જણાવે છે કે
+// "હમણાં જ સ્કેન થયું, તપાસી લો" — જેથી બ્રિજ 15 મિનિટની સેફ્ટી-નેટ
+// રાહ જોયા વગર તરત જ ફાઇલ WhatsApp પર મોકલી શકે.
+// ⚠ આ ફક્ત ત્યારે જ કામ કરે જ્યારે: (1) બ્રિજ આ જ કમ્પ્યુટર પર ચાલુ હોય,
+// (2) બ્રાઉઝર https://localhost પર આ "http" સંદેશો રોકતું ન હોય. ક્યારેક
+// બ્રાઉઝરની સુરક્ષાને લીધે આ સંદેશો ન પહોંચે — એ કિસ્સામાં bridge જાતે
+// 15 મિનિટમાં આપોઆપ ચેક કરી લેશે, એટલે ફાઇલ ક્યારેય કાયમ માટે અટકતી નથી.
+function notifyWhatsappBridge(){
+  try{
+    fetch('http://127.0.0.1:8787/trigger', { mode: 'no-cors' }).catch(()=>{});
+  }catch(e){ /* ચૂપચાપ છોડો — bridge ચાલુ ન હોય તો પણ એપનું બાકીનું કામ ચાલુ રહે */ }
+}
 
 document.getElementById('testPushBtn').addEventListener('click', async ()=>{
   const btn = document.getElementById('testPushBtn');
