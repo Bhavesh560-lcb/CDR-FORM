@@ -634,6 +634,7 @@
     white-space:nowrap;
   }
   .cdr-file-btn.download{border-color:#2e7d32;color:#2e7d32;background:#eef8ee;}
+  .cdr-file-btn.resend{border-color:#1565c0;color:#1565c0;background:#eaf2fd;}
   .cdr-file-name{
     font-size:11px;color:var(--ink-soft);
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
@@ -1425,6 +1426,7 @@ async function attemptLogin(){
     err.textContent = '';
     showApp();
     setupPushNotifications(); // settings આ સમય સુધીમાં લોડ થઈ ચૂક્યા છે
+    loadMyWhatsappNumber();
   } else {
     err.textContent = 'યુઝર આઇડી અથવા પાસવર્ડ ખોટો છે.';
     document.getElementById('loginPass').value = '';
@@ -1818,25 +1820,29 @@ function renderLog(){
     const idx = String(list.length - i).padStart(3,'0');
     const isOwner = (r.username || '').trim().toUpperCase() === cu;
     const hasFile = !!r.cdrFileUrl;
-    const showBell = hasFile && r.cdrSeen === false && isOwner;
 
     let fileRow = '';
     if(isAdmin){
-      fileRow = hasFile
-        ? `<div class="entry-cdr-file-row">
-            <span class="cdr-file-btn download">📎 CDR ફાઇલ મળી</span>
-            <span class="cdr-file-name" title="${escapeHtml(r.cdrFileName || '')}">${escapeHtml(r.cdrFileName || '')}</span>
-          </div>`
-        : `<div class="entry-cdr-file-row">
+      if(hasFile){
+        const waStatus = r.whatsappSent
+          ? '<span class="cdr-file-name" style="color:#1a7d3a;font-weight:600;">📤 WhatsApp પર મોકલાયું</span>'
+          : '<span class="cdr-file-name">⏳ WhatsApp પર મોકલવાનું બાકી છે...</span>';
+        fileRow = `<div class="entry-cdr-file-row">
+            ${waStatus}
+            <button type="button" class="cdr-file-btn resend resendWhatsappBtn" data-id="${r.id}">🔁 ફરી મોકલો</button>
+          </div>`;
+      } else {
+        fileRow = `<div class="entry-cdr-file-row">
             <span class="cdr-file-name">CDR ફાઇલ હજુ અપલોડ ફોલ્ડરમાં આવી નથી</span>
           </div>`;
+      }
     } else if(hasFile && isOwner){
-      fileRow = `<div class="entry-cdr-file-row">
-        <button type="button" class="cdr-file-btn download cdrDownloadBtn" data-id="${r.id}" data-seen="${r.cdrSeen ? '1' : '0'}">
-          ⬇ CDR ડાઉનલોડ
-        </button>
-        ${showBell ? '<span class="cdr-bell" title="નવી CDR ફાઇલ આવી છે">🔔</span>' : ''}
-      </div>`;
+      const waStatus = r.whatsappSent
+        ? '<span class="cdr-file-name" style="color:#1a7d3a;font-weight:600;">📤 WhatsApp પર મોકલાઈ ગયું</span>'
+        : (myWhatsappNumber
+            ? '<span class="cdr-file-name">⏳ WhatsApp પર મોકલાવાનું બાકી છે...</span>'
+            : '<span class="cdr-file-name">📱 WhatsApp નંબર હજુ સેટ નથી — એડમિનનો સંપર્ક કરો</span>');
+      fileRow = `<div class="entry-cdr-file-row">${waStatus}</div>`;
     }
 
     return `<div class="entry-card ${r.cdr ? 'cdr-done' : ''}">
@@ -1886,88 +1892,35 @@ function renderLog(){
     });
   });
 
-  body.querySelectorAll('.cdrDownloadBtn').forEach(btn=>{
+  body.querySelectorAll('.resendWhatsappBtn').forEach(btn=>{
     btn.addEventListener('click', async (e)=>{
       const b = e.currentTarget;
       const id = b.dataset.id;
-      const seen = b.dataset.seen === '1';
       const url = currentWebhookUrl();
       if(!url){ alert('પહેલા Webhook URL સેટ કરો.'); return; }
+      if(!confirm('આ CDR ફાઇલ ફરીથી WhatsApp પર મોકલવી છે?')) return;
+
       const origText = b.textContent;
       b.disabled = true;
-      b.textContent = '⏳ તૈયાર થાય છે...';
-
-      // સર્વર જવાબ JSON છે કે નહીં એ ચકાસીને — HTML/ટાઇમઆઉટ પેજ આવે તો
-      // "Unexpected token '<'" જેવી ક્રેશને બદલે સ્પષ્ટ ભૂલ-સંદેશ આપે છે.
-      async function fetchJson_(fetchUrl){
-        const res = await fetchWithRetry(fetchUrl);
-        const text = await res.text();
-        try{
-          return JSON.parse(text);
-        }catch(parseErr){
-          throw new Error('સર્વર તરફથી અયોગ્ય જવાબ મળ્યો (કદાચ સમય પૂરો થયો) — ફરી પ્રયત્ન કરો.');
-        }
-      }
-
+      b.textContent = '⏳...';
       try{
-        const sep = url.includes('?') ? '&' : '?';
-
-        // 1) મેટા-માહિતી મગાવો — ફાઇલ સર્વર પર એક જ વાર વંચાઈને નાના-નાના
-        //    ટુકડામાં તૈયાર થઈ જાય છે; આ જવાબ ફક્ત નામ/ટોકન/કુલ ટુકડા જ
-        //    લઈને આવે છે એટલે નાનો ને ઝડપી છે.
-        const meta = await fetchJson_(url + sep + 'action=downloadCdrFileMeta&id=' + encodeURIComponent(id));
-        if(!meta || meta.status !== 'ok' || !meta.token){
-          throw new Error((meta && meta.message) || 'ફાઇલ તૈયાર કરવામાં ભૂલ.');
+        const res = await fetchWithRetry(url, {
+          method: 'POST',
+          headers: {'Content-Type':'text/plain;charset=utf-8'},
+          body: JSON.stringify({ action: 'resendWhatsapp', id: id })
+        });
+        const json = JSON.parse(await res.text());
+        if(!json || json.status !== 'ok'){
+          throw new Error((json && json.message) || 'અજાણી ભૂલ.');
         }
-
-        // 2) દરેક ટુકડો વારાફરતી મગાવો, ટકાવારી બતાવતા જાઓ. કોઈ એક ટુકડો
-        //    નિષ્ફળ જાય તો આખી ફાઇલ ફરી શરૂ કરવાને બદલે ફક્ત એ ટુકડો
-        //    2 વાર ફરી પ્રયત્ન કરાય છે.
-        const totalChunks = meta.totalChunks || 1;
-        let base64 = '';
-        for(let c = 0; c < totalChunks; c++){
-          const pct = Math.round((c / totalChunks) * 100);
-          b.textContent = `⏳ ડાઉનલોડ થાય છે... ${pct}%`;
-          let chunkResult = null;
-          let chunkErr = null;
-          for(let attempt = 0; attempt < 2; attempt++){
-            try{
-              chunkResult = await fetchJson_(url + sep + 'action=downloadCdrFileChunk&token=' + encodeURIComponent(meta.token) + '&chunk=' + c);
-              if(chunkResult && chunkResult.status === 'ok'){ chunkErr = null; break; }
-              chunkErr = new Error((chunkResult && chunkResult.message) || 'ટુકડો મળ્યો નહીં.');
-            }catch(err){
-              chunkErr = err;
-            }
-          }
-          if(chunkErr) throw chunkErr;
-          base64 += chunkResult.data;
-        }
-        b.textContent = '⏳ ફાઇલ સેવ થાય છે...';
-
-        const byteChars = atob(base64);
-        const byteNumbers = new Array(byteChars.length);
-        for(let i = 0; i < byteChars.length; i++) byteNumbers[i] = byteChars.charCodeAt(i);
-        const byteArray = new Uint8Array(byteNumbers);
-        const blob = new Blob([byteArray], { type: meta.mimeType || 'application/octet-stream' });
-        const blobUrl = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = blobUrl;
-        a.download = meta.fileName || 'CDR_FILE';
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        setTimeout(()=>URL.revokeObjectURL(blobUrl), 10000);
-
-        if(!seen){
-          const entry = entries.find(x => x.id === id);
-          if(entry) entry.cdrSeen = true;
-          markCdrSeenOnServer(id);
-          await persistEntries();
-          renderLog();
-          return; // renderLog() એ આખું fileRow ફરી બનાવ્યું, જૂનું બટન હવે નથી
-        }
+        const entry = entries.find(x => x.id === id);
+        if(entry) entry.whatsappSent = false;
+        await persistEntries();
+        renderLog();
+        alert('✓ ફરી મોકલવા માટે મૂકી દેવાયું — થોડી મિનિટોમાં WhatsApp પર જશે.');
+        return; // renderLog() એ ફરી બનાવ્યું, જૂનું બટન હવે નથી
       }catch(err){
-        alert('ડાઉનલોડ કરવામાં ભૂલ: ' + err.message);
+        alert('ભૂલ: ' + err.message);
       }
       b.textContent = origText;
       b.disabled = false;
@@ -2056,6 +2009,32 @@ document.getElementById('testPushBtn').addEventListener('click', async ()=>{
   btn.textContent = origText;
   btn.disabled = false;
 });
+
+// ============================================================
+// WhatsApp નંબર — CDR ફાઇલ સ્કેન થાય ત્યારે (ડાઉનલોડ બટન ઉપરાંત) આપોઆપ
+// WhatsApp પર પણ મોકલાય એ માટે દરેક યુઝરે પોતાનો WhatsApp નંબર એક જ વાર
+// સેવ કરવાનો રહેશે (દેશનો કોડ સાથે, દા.ત. 91XXXXXXXXXX). ખરેખર મોકલવાનું
+// કામ gunho-whatsapp-bridge.js (તમારા કમ્પ્યુટર પર ચાલતું) કરે છે — એ
+// દર થોડી મિનિટે Apps Script ને પૂછે છે કે કોઈ ફાઇલ મોકલવાની બાકી છે કે નહીં.
+// ============================================================
+let myWhatsappNumber = '';
+
+async function loadMyWhatsappNumber(){
+  const url = currentWebhookUrl();
+  if(!url || !currentUser) return;
+  try{
+    const sep = url.includes('?') ? '&' : '?';
+    const res = await fetchWithRetry(url + sep + 'action=getMyWhatsapp&username=' + encodeURIComponent(currentUser));
+    const data = await res.json();
+    if(data && data.status === 'ok') myWhatsappNumber = data.whatsapp || '';
+  }catch(e){ /* ચૂપચાપ છોડો — બટનમાંથી ફરી પ્રયત્ન કરી શકાય */ }
+}
+
+// ⚡ યુઝર પોતે WhatsApp નંબર નાખે એવું બટન હવે કાઢી નાખ્યું છે — હવે એડમિન
+// સીધો Google Sheet ("Users" શીટના 5મા કૉલમમાં) દરેક યુઝરનો WhatsApp નંબર
+// લખી શકે છે. loadMyWhatsappNumber() દર વખતે (લોગિન/પેજ-ખોલવા વખતે) સીધો
+// Sheet માંથી જ વાંચે છે, એટલે એડમિન Sheet માં નંબર બદલે/ઉમેરે એટલે
+// આપોઆપ (કોઈ કોડ ફેરફાર વગર) આગલી વાર એપ ખૂલે ત્યારે નવો નંબર વપરાશે.
 
 document.getElementById('testDriveBtn').addEventListener('click', async ()=>{
   const btn = document.getElementById('testDriveBtn');
@@ -2291,6 +2270,7 @@ document.getElementById('fTillDate').addEventListener('change', function(){
   await loadSettings();
   if(currentUser){
     setupPushNotifications(); // Webhook URL હવે લોડ થઈ ગયું — પાછલા-લોગિન વખતે અહીંથી
+    loadMyWhatsappNumber();
   }
   const tasks = [loadEntries()];
   if(currentUser === LOGIN_USER){
