@@ -873,11 +873,11 @@
       </div>
 
       <div>
-        <label>તારીખ થી — તારીખ સુધી</label>
+        <label>તારીખ થી — તારીખ સુધી <span class="req">*</span></label>
         <div class="date-pair">
-          <input type="date" id="fDateFrom">
+          <input type="date" id="fDateFrom" required>
           <span>થી</span>
-          <input type="date" id="fDateTo">
+          <input type="date" id="fDateTo" required>
         </div>
         <label style="display:flex;align-items:center;gap:8px;margin-top:8px;font-weight:normal;">
           <input type="checkbox" id="fTillDate" style="width:22px;height:22px;accent-color:#1e3a5f;flex-shrink:0;">
@@ -2182,8 +2182,9 @@ function formatTimestamp_(iso){
 async function submitForm(){
   const name = document.getElementById('fName').value.trim();
   const crimeNumber = document.getElementById('fCrime').value.trim();
+  const fTillDateChecked = document.getElementById('fTillDate').checked;
   const dateFrom = document.getElementById('fDateFrom').value;
-  const dateTo = document.getElementById('fTillDate').checked ? 'Till Date' : document.getElementById('fDateTo').value;
+  const dateTo = fTillDateChecked ? 'Till Date' : document.getElementById('fDateTo').value;
   const webhookUrl = document.getElementById('webhookUrl').value.trim();
   const notifyEmail = ''; // ઈમેલ નોટિફિકેશન બંધ કરેલ છે
   const statusEl = document.getElementById('statusMsg');
@@ -2198,6 +2199,20 @@ async function submitForm(){
   if(!name || mobRows.length === 0){
     statusEl.textContent = 'નામ લખો અને ઓછામાં ઓછો એક મોબાઇલ/IMEI નંબર નાખો.';
     statusEl.className = 'status err';
+    return;
+  }
+
+  // તારીખ થી અને તારીખ સુધી — બંને ફરજીયાત (ટીલ ડેઇટ ચાલુ હોય તો "તારીખ સુધી" જરૂરી નથી)
+  if(!dateFrom){
+    statusEl.textContent = 'તારીખ થી જરૂરી છે — તારીખ નાખો.';
+    statusEl.className = 'status err';
+    document.getElementById('fDateFrom').focus();
+    return;
+  }
+  if(!fTillDateChecked && !dateTo){
+    statusEl.textContent = 'તારીખ સુધી જરૂરી છે — તારીખ નાખો અથવા "ટીલ ડેઇટ" પસંદ કરો.';
+    statusEl.className = 'status err';
+    document.getElementById('fDateTo').focus();
     return;
   }
 
